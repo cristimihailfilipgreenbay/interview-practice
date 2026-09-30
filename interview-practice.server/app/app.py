@@ -6,7 +6,7 @@ CORS(app, origins=["http://localhost:4200"])
 
 
 @app.route("/")
-def hello_world():  # put application's code here
+def hello_world() -> str:  # put application's code here
     return "Hello World!"
 
 
