@@ -14,10 +14,12 @@ npm run watch                               # dev build in watch mode
 npm test                                    # ng test: Vitest via @angular/build:unit-test, jsdom, watch mode
 npx ng test --watch=false                   # single run
 npx ng test --include src/app/app.spec.ts   # run one spec file
-npx prettier --write .                      # format (no lint target configured)
+npm run lint                                # ng lint: eslint over src/**/*.ts and src/**/*.html
+npx prettier --write .                      # format
+npx prettier --check .                      # check formatting without writing
 ```
 
-No ESLint and no e2e framework are set up.
+No e2e framework is set up.
 
 ## Architecture and conventions
 
@@ -27,7 +29,8 @@ No ESLint and no e2e framework are set up.
 - Component selector prefix is `app`. Component styles default to SCSS.
 - Tests use Vitest globals (`describe`/`it`/`expect` without imports, via `vitest/globals` in `tsconfig.spec.json`) together with Angular `TestBed`. Since there's no zone, use `await fixture.whenStable()` before asserting on the DOM, not `fakeAsync`/`tick`.
 - TypeScript is strict (`strictInjectionParameters`, `strictInputAccessModifiers`, `noPropertyAccessFromIndexSignature`, etc.).
-- Prettier: `printWidth: 100`, single quotes, Angular parser for `.html`.
+- Prettier: `printWidth: 100`, single quotes, Angular parser for `.html`. `.prettierignore` excludes build output, `node_modules`, and `package-lock.json`.
+- ESLint (`eslint.config.js`, flat config): `@eslint/js` + `typescript-eslint` (recommended + stylistic) + `angular-eslint` (`tsRecommended` for `.ts`, `templateRecommended` + `templateAccessibility` for `.html`). `eslint-plugin-prettier/recommended` is the last extend on the `.ts` block, so Prettier violations surface as `prettier/prettier` ESLint errors and conflicting stylistic rules are disabled; `.html` formatting is handled by Prettier directly (not linted through the prettier plugin, since templates use a different parser). Component/directive selectors are enforced via `@angular-eslint/component-selector` and `@angular-eslint/directive-selector` (prefix `app`).
 - Production budgets: initial bundle warns at 500kB and errors at 1MB. Per-component styles warn at 4kB and error at 8kB.
 
 ## Angular CLI MCP server
