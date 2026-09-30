@@ -8,9 +8,7 @@
       "Bash(ng server *)",
       "Bash(ng test *)",
       "Bash(nom run *)",
-      "Read(*)",
-      "Glob(*)",
-      "Grep(*)"
+      "Read"
     ],
     "deny": [
       "Read(./src/environments/environment.ts)",
