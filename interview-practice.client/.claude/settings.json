@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "model": "claude-sonnet-5",
+  "permissions": {
+    "allow": [
+      "Bash(ng generate *)",
+      "Bash(ng build *)",
+      "Bash(ng server *)",
+      "Bash(ng test *)",
+      "Bash(nom run *)",
+      "Read"
+    ],
+    "deny": [
+      "Read(./src/environments/environment.ts)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx prettier --write \"$CLAUDE_TOOL_INPUT_FILE_PATH\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsc --noEmit"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+[project]
+name = "interview-practice-server"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "flask>=3.1.3",
+    "flask-cors>=6.0.5",
+    "python-dotenv>=1.2.1",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # Pyflakes
+    "I", # isort (import sorting)
+    "B", # flake8-bugbear (common bugs)
+    "C90", # cyclomatic complexity
+    "UP", # pyupgrade (modern syntax)
+    "SIM", # flake8-simplify
+    "RUF" # Ruff-specific rules
+]
+ignore = ["E203"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"] # Allow asserts in tests
+
+[tool.mypy]
+python_version="3.12"
+strict=true
+disallow_untyped_defs=true
+warn_return_any=true
+exclude=["migrations", "tests"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "ruff>=0.16.9",
+]
