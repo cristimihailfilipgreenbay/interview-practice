@@ -127,8 +127,9 @@ One mock interview session, from creation through evaluation.
   | `technical_screener` | technical | strict |
   | `hr` | behavioral | neutral |
   | `hiring_manager` | technical | friendly |
-- `target_question_count`: integer; a soft cap for the Q&A phase, not a hard requirement,
-  since the interviewer can end the phase early
+- `target_question_count`: integer, 1–30; a soft cap for the Q&A phase, not a hard requirement,
+  since the interviewer can end the phase early. The 30 ceiling is enforced on both client and
+  server, so a typo can't produce an hours-long interview
 - `status`: `in_progress` | `completed` | `abandoned` — `abandoned` either when the
   candidate explicitly quits mid-session, or when the session goes stale (see
   `last_activity_at` below); evaluation still runs in both cases but is flagged incomplete

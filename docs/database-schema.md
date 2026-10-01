@@ -62,7 +62,7 @@ Deleting a row here cascades (`ON DELETE CASCADE`) to every `interviews` row wit
 | `tone` | `text` | e.g. strict/neutral/friendly; extensible, so plain text rather than a fixed enum |
 | `interview_type` | `text` | e.g. technical/behavioral; plain text for future extensibility (e.g. "mixed") |
 | `interviewer_role` | `text` | e.g. recruiter/hr/hiring_manager; plain text, same extensibility reasoning as `tone` |
-| `target_question_count` | `integer` | soft cap, seeded by difficulty |
+| `target_question_count` | `integer` | soft cap, seeded by difficulty; 1–30 (`CHECK`) |
 | `status` | `enum(in_progress, completed, abandoned)` | |
 | `last_activity_at` | `timestamptz` | updated on every new message; staleness timeout 30 minutes — lazily detects a stale/ungracefully-closed session and marks it `abandoned` — see domain-model.md |
 | `persona_name` | `text` | |
