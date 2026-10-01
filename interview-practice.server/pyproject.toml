@@ -11,6 +11,8 @@ dependencies = [
     "sqlalchemy>=2.1.1",
     "flask-migrate>=4.1.0",
     "psycopg[binary]>=3.3.6",
+    "pypdf>=6.19.0",
+    "pydantic>=2.13.5",
 ]
 
 [tool.ruff]
