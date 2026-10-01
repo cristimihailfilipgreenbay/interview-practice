@@ -213,7 +213,7 @@ the same trigger point as `Evaluation` (session end), keeping the two symmetric.
 - `judge_model`: the OpenRouter model id used to run this review, default
   `google/gemini-2.5-flash` (selectable globally in Preferences, or overridable per
   Interview via `phase_settings_override.interviewer_review.model`, restricted there to
-  `google/gemini-2.5-flash` / `gpt-5-mini` / `gpt-5-nano`) — deliberately independent of
+  `google/gemini-2.5-flash` / `gpt-5-mini` / `gpt-5-nano` / `typesafe/jev-1.13`) — deliberately independent of
   whichever model produced this Interview's question-plan/persona generation (phase 2) and
   live conversation (phase 3): that model is always excluded from the judge-model choices,
   in both Preferences and advanced settings, so the two can never collide — see

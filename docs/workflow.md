@@ -48,7 +48,7 @@ step is implemented.
   exists, falling back to a generic hint when there's no document or no grounded match —
   the hint prompt must never fabricate experience the candidate didn't actually provide.
 - **Advanced settings** (collapsed, nice to have) — per-phase overrides for model
-  (`gpt-5-mini`/`gpt-5-nano` for starters), temperature, max tokens, and reasoning effort,
+  (`gpt-5-mini`/`gpt-5-nano`/`gpt-4o-mini`/`typesafe/jev-1.13`), temperature, max tokens, and reasoning effort,
   for any of the 5 phases individually; anything left unset falls back to the global
   Preferences default.
 

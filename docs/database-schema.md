@@ -73,7 +73,7 @@ Deleting a row here cascades (`ON DELETE CASCADE`) to every `interviews` row wit
 | `coaching_helpers_enabled` | `boolean` | set by candidate at creation; default `false` |
 | `response_style` | `enum(concise, detailed)` | default `concise`; affects phase 3 phrasing and phase 5 write-up length |
 | `evaluation_criteria` | `jsonb` | `{technical: string[], behavioral: string[]}` — see domain-model.md |
-| `phase_settings_override` | `jsonb` | keyed by phase (`jd_analysis`, `question_plan`, `live_conversation`, `ask_back`, `evaluation`, `interviewer_review`); each value optionally `{model, temperature, max_tokens, reasoning_effort}`; any omitted key/field falls back to the global Preferences default. `interviewer_review`'s model choice is a narrower set (`google/gemini-2.5-flash`/`gpt-5-mini`/`gpt-5-nano`) than the other 5 phases' — see architecture.md |
+| `phase_settings_override` | `jsonb` | keyed by phase (`jd_analysis`, `question_plan`, `live_conversation`, `ask_back`, `evaluation`, `interviewer_review`); each value optionally `{model, temperature, max_tokens, reasoning_effort}`; any omitted key/field falls back to the global Preferences default. `interviewer_review`'s model choice is a narrower set (`google/gemini-2.5-flash`/`gpt-5-mini`/`gpt-5-nano`/`typesafe/jev-1.13`) than the other 5 phases' — see architecture.md |
 | `created_at` | `timestamptz` | default now() |
 | `ended_at` | `timestamptz`, nullable | |
 

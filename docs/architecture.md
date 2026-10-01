@@ -124,8 +124,8 @@ The assignment requires at least 5 system prompts using different prompting tech
 Each one corresponds to a distinct backend phase of the interview lifecycle, rather than to
 5 separate standalone tools:
 
-All five run on **`gpt-5-mini`** by default (selectable among the assignment's 3 allowed
-OpenRouter chat models via Preferences), using 5 deliberately distinct techniques:
+All five run on **`gpt-5-mini`** by default (selectable among the allowed OpenRouter
+chat models via Preferences), using 5 deliberately distinct techniques:
 
 1. **JD/CV analysis** (runs on Create Interview submit) — extracts skills, likely topics,
    and a domain suggestion from the job description and/or CV text. Technique: **zero-shot**
@@ -211,13 +211,13 @@ global Preferences defaults (`gpt-5-mini`, Preferences' temperature, etc.).
   reasoning_effort}`. Any field, or any phase key, that's absent falls back to the global
   Preferences default. One JSONB column rather than a column per phase per setting, to
   avoid a wide, mostly-null `interviews` table.
-- **Model choice**: for the 5 candidate-facing phases, all 3 assignment-allowed models
-  (`gpt-5-mini`, `gpt-5-nano`, `gpt-5`). The picker mechanism is already generic per-phase,
-  so there was no remaining reason to keep it artificially restricted to 2.
+- **Model choice**: for the 5 candidate-facing phases, all allowed models (`gpt-5-mini`,
+  `gpt-5-nano`, `gpt-4o-mini`, `typesafe/jev-1.13`). The picker mechanism is already generic
+  per-phase, so there was no remaining reason to keep it artificially restricted.
 - **`interviewer_review`'s model choice is deliberately a different, narrower set**:
-  `google/gemini-2.5-flash` (the default — see below), `gpt-5-mini`, `gpt-5-nano`. No full
-  `gpt-5` here — these two OpenAI options exist as quick, cheap experimentation, not an
-  expected path; Gemini stays the recommendation. This is intentionally asymmetric with the
+  `google/gemini-2.5-flash` (the default — see below), `gpt-5-mini`, `gpt-5-nano`,
+  `typesafe/jev-1.13`. No `gpt-4o-mini` here — the OpenAI options exist as quick, cheap
+  experimentation, not an expected path; Gemini stays the recommendation. This is intentionally asymmetric with the
   other 5 phases, not an oversight: the judge's whole point is being a different vendor
   from the interview model, so its override set centers on that instead of mirroring the
   candidate-facing phases' allow-list.
@@ -313,7 +313,7 @@ itself stays simple for a non-technical user.
 
 ### Model & Prompts tab
 
-- **Interview model** selection (from the 3 allowed OpenRouter chat models, default
+- **Interview model** selection (from the allowed OpenRouter chat models, default
   `gpt-5-mini`) — used for all 5 candidate-facing phases above: JD/CV analysis,
   question-plan/persona generation, live conversation, ask-back suggestions, and STAR
   evaluation
