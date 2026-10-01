@@ -3,14 +3,24 @@ import os
 from flask import Flask
 from flask_cors import CORS
 
-app = Flask(__name__)
-CORS(app, origins=[os.environ.get("CLIENT_ORIGIN", "http://localhost:4200")])
+from app import models  # noqa: F401  (registers models so Alembic sees them)
+from app.extensions import db, migrate
+from config import Config
 
 
-@app.route("/")
-def hello_world() -> str:  # put application's code here
-    return "Hello World!"
+def create_app() -> Flask:
+    app = Flask(__name__)
+    app.config.from_object(Config)
 
+    client_host = os.environ.get("CLIENT_HOST")
+    client_port = os.environ.get("CLIENT_PORT")
+    CORS(app, origins=[f"http://{client_host}:{client_port}"])
 
-if __name__ == "__main__":
-    app.run()
+    db.init_app(app)
+    migrate.init_app(app, db)
+
+    @app.route("/")
+    def hello_world() -> str:
+        return "Hello World!"
+
+    return app
