@@ -1,0 +1,64 @@
+# Interview Practice — Server
+
+Flask backend, managed with `uv`. Owns every OpenRouter call and the security guard — the
+API key and all prompt construction stay server-side; the Angular client
+(`interview-practice.client`) never sees either. Structured as a Flask application
+factory (`create_app()`) with one Blueprint per domain area
+(`interviews`/`documents`/`applications`/`preferences`) — see
+[`../docs/api-design.md`](../docs/api-design.md) for the full REST contract.
+
+Early-stage scaffold: currently a bare Flask app with no routes, models, or tests beyond
+what's listed below. `flask-sqlalchemy`, `flask-migrate`, and `pydantic` aren't installed
+yet — see [`../docs/database-schema.md`](../docs/database-schema.md) and
+[`../docs/architecture.md`](../docs/architecture.md) for what's planned.
+
+For AI-agent-specific conventions (hooks, lint-on-save), see [`CLAUDE.md`](./CLAUDE.md)
+rather than this file.
+
+## Commands
+
+```bash
+uv sync                                # install dependencies (incl. dev group: mypy, ruff)
+uv run flask --app app.app run         # dev server, http://127.0.0.1:5000
+uv run flask --app app.app run --debug # dev server with auto-reload/debugger
+uv run ruff check .                    # lint
+uv run ruff format .                   # format
+uv run mypy app                        # type check (strict mode)
+uv run pytest                          # run tests (none exist yet)
+uv add <package>                       # add a runtime dependency
+uv add --dev <package>                 # add a dev dependency
+```
+
+## Configuration
+
+```bash
+cp .env.dev .env   # first time only
+```
+
+`.env.dev` is a checked-in *template*; `.env` is your real, git-ignored local file —
+Compose and Flask both read `.env`, never `.env.dev` directly. It has:
+
+| Variable | Used for |
+|---|---|
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT` | assembled into `SQLALCHEMY_DATABASE_URI` at runtime — discrete pieces, not one pre-built URI, so the same values also work as-is for Docker Compose's `db` service (see `../docs/deployment.md`) |
+| `CLIENT_ORIGIN` | `flask-cors`'s allowed origin — `http://localhost:4200` for local dev (`ng serve` and `flask run` are different origins); a no-op inside Docker Compose, where the browser only ever talks to nginx's single origin |
+| `OPENROUTER_BASE_URL` | defaults to the real `https://openrouter.ai/api/v1`; override to point at the opt-in `mock-llm` Docker Compose service for local dev without real API cost (see `../docs/deployment.md`) |
+
+`OPENROUTER_API_KEY` is the one exception — deliberately **not** in `.env.dev`/`.env` or
+any other file in this repo. It comes only from wherever it already lives on your own
+machine (shell environment); every OpenRouter call (JD/CV analysis, persona/question-plan
+generation, live conversation, ask-back suggestions, STAR evaluation, Interviewer
+Performance Review, persona image generation) needs it.
+
+`config.py` has a `SECRET_KEY` placeholder that isn't actually wired to anything yet — not
+a real configuration requirement right now, so it isn't listed above.
+
+`config.py` currently reads a single pre-built `DATABASE_URL` — assembling it from the
+discrete `POSTGRES_*` pieces instead is a planned change, not yet made (see
+`../docs/deployment.md`). `OPENROUTER_API_KEY`/`OPENROUTER_BASE_URL` aren't wired up yet
+either.
+
+## Where things are documented
+
+This README is just how to run it. What it *does* and why lives in
+[`../docs/`](../docs/) — start with [`../docs/overview.md`](../docs/overview.md).

@@ -26,7 +26,17 @@ No e2e framework is set up.
 - Standalone components with no NgModules. `src/main.ts` calls `bootstrapApplication(App, appConfig)`. App-wide providers live in `src/app/app.config.ts` and routes in `src/app/app.routes.ts`.
 - Zoneless: `zone.js` is not installed and there's no `provideZoneChangeDetection`. UI updates rely on signals, so keep component state in `signal`/`computed` and don't mutate plain fields expecting re-render.
 - File and class naming follows the Angular 20+ style with no `.component` suffix: `app.ts` exports `App`, with `app.html`, `app.scss` and `app.spec.ts` next to it.
-- Component selector prefix is `app`. Component styles default to SCSS.
+- Component selector prefix is `app`. Component styles default to SCSS today, but UI
+  components are designed to move to **Spartan + Tailwind** (not yet installed) — see
+  `../docs/adr/0010-spartan-for-ui-components.md` before starting new UI work, so it lands
+  in that direction rather than more plain-SCSS components.
+- Request/response shapes are designed to be validated with **Zod** (not yet installed) —
+  see `../docs/architecture.md`.
+- The server's base URL belongs in `environment.apiUrl`
+  (`src/environments/environment.ts`/`environment.development.ts`, currently empty stubs)
+  — see `../docs/architecture.md` for the dev-vs-production values, not an OS env var.
+- `Dockerfile`/`nginx.conf`/`.dockerignore` exist for the Docker Compose deployment — see
+  `../docs/deployment.md`.
 - Tests use Vitest globals (`describe`/`it`/`expect` without imports, via `vitest/globals` in `tsconfig.spec.json`) together with Angular `TestBed`. Since there's no zone, use `await fixture.whenStable()` before asserting on the DOM, not `fakeAsync`/`tick`.
 - TypeScript is strict (`strictInjectionParameters`, `strictInputAccessModifiers`, `noPropertyAccessFromIndexSignature`, etc.).
 - Prettier: `printWidth: 100`, single quotes, Angular parser for `.html`. `.prettierignore` excludes build output, `node_modules`, and `package-lock.json`.
