@@ -22,9 +22,11 @@ There is no `tests/` directory yet; `[tool.ruff.lint.per-file-ignores]` and `[to
 
 ## Architecture and conventions
 
-- Entry point is `app/app.py`, which creates the `Flask` app instance (`app = Flask(__name__)`). Reference it as `app.app` (module path) when invoking `flask` commands or a WSGI server, not the bare filename.
-- `config.py` at the repo root defines a `Config` class read from environment variables via `python-dotenv`'s `load_dotenv()`: `SECRET_KEY` and `SQLALCHEMY_DATABASE_URI` (from `DATABASE_URL`). Note that `flask-sqlalchemy`/`sqlalchemy` are not yet in `pyproject.toml` dependencies — `Config` is prepared for a database layer that isn't wired up yet. No `.env` file exists yet; add one locally (it's git-ignored) before these variables have real values.
+- Entry point is `app/app.py`, which creates the `Flask` app instance (`app = Flask(__name__)`). Reference it as `app.app` (module path) when invoking `flask` commands or a WSGI server, not the bare filename. CORS reads its allowed origin from `CLIENT_ORIGIN` (default `http://localhost:4200`), not hardcoded.
+- `config.py` at the repo root defines a `Config` class read from environment variables via `python-dotenv`'s `load_dotenv()`: `SECRET_KEY` and `SQLALCHEMY_DATABASE_URI` (from `DATABASE_URL`). Note that `flask-sqlalchemy`/`sqlalchemy`/`flask-migrate`/`pydantic` are not yet in `pyproject.toml` dependencies — `Config` is prepared for a database layer that isn't wired up yet, and `SECRET_KEY` isn't actually used by anything yet either. `gunicorn` *is* already a dependency (for the Docker image, see below). `.env.dev` is a checked-in template; copy it to `.env` (git-ignored) for real local values — see `../docs/deployment.md`.
 - `static/` and `templates/` exist but are empty, following default Flask conventions for static assets and Jinja templates.
+- Current code is a bare single-file app — the designed target (not yet built) is a Flask application factory (`create_app()`) with one Blueprint per domain area. See `../docs/architecture.md` and `../docs/api-design.md` before adding routes, so new code lands in that shape rather than growing `app.py` monolithically.
+- `Dockerfile`/`.dockerignore` exist for the Docker Compose deployment — see `../docs/deployment.md`.
 - Ruff (`[tool.ruff]`, `[tool.ruff.lint]` in `pyproject.toml`): target `py312`, line length 88, rule set `E, W, F, I, B, C90, UP, SIM, RUF`.
 - Mypy (`[tool.mypy]`): `strict = true`, `disallow_untyped_defs = true`, `warn_return_any = true` — new functions need full type annotations. `migrations` and `tests` are excluded.
 - `.editorconfig`: 4-space indent, UTF-8, final newline, trimmed trailing whitespace; Python lines capped at 88 (matches Ruff), Markdown line length unrestricted.
