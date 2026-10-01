@@ -18,7 +18,7 @@ reasoning behind decisions only gestured at here.
   empty stubs, swapped by `angular.json`'s `fileReplacements` per build config) — **not** an
   OS-level env var, since Angular ships as a static build with no `process.env` at runtime
   in the browser. `environment.development.ts` points at the local Flask dev server (a
-  different origin — `http://localhost:5000/api`, hitting real cross-origin CORS);
+  different origin — `http://localhost:8001/api`, i.e. `SERVER_PORT`, hitting real cross-origin CORS);
   `environment.ts` (production, used in the Docker build) is just `/api` — a relative path,
   same-origin behind nginx's reverse proxy (see `deployment.md`), where CORS doesn't
   actually apply at all.
