@@ -16,7 +16,7 @@ For AI-agent-specific conventions (file naming, testing patterns, hooks), see
 
 ```bash
 npm install
-npm start                                   # ng serve, dev config, http://localhost:4200
+npm start                                   # ng serve, dev config, http://localhost:${CLIENT_PORT:-8002}
 npm run build                               # production build to dist/
 npm run watch                               # dev build in watch mode
 npm test                                    # ng test: Vitest via @angular/build:unit-test, jsdom

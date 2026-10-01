@@ -203,7 +203,7 @@ developer-facing preferences area kept apart from the candidate experience.
 - **Deployment**: Docker Compose (`client`/`server`/`db`, plus opt-in `mock-llm` behind a
   profile), project name pinned to `interview-practice`, nginx reverse-proxying `/api/*`
   same-origin in the client container (no CORS in that path), CORS only relevant for local
-  dev via `CLIENT_ORIGIN`, discrete `POSTGRES_*` env vars assembled into the DB URI at
+  dev via `CLIENT_HOST`/`CLIENT_PORT`, discrete `POSTGRES_*` env vars assembled into the DB URI at
   runtime, `.env.dev` as a checked-in template copied to a real git-ignored `.env`,
   `OPENROUTER_API_KEY` sourced only from the host shell environment, never a file.
 - **Known limitations accepted**: no auth

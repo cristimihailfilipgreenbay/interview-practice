@@ -7,9 +7,9 @@ factory (`create_app()`) with one Blueprint per domain area
 (`interviews`/`documents`/`applications`/`preferences`) — see
 [`../docs/api-design.md`](../docs/api-design.md) for the full REST contract.
 
-Early-stage scaffold: currently a bare Flask app with no routes, models, or tests beyond
-what's listed below. `flask-sqlalchemy`, `flask-migrate`, and `pydantic` aren't installed
-yet — see [`../docs/database-schema.md`](../docs/database-schema.md) and
+Early-stage: the Flask app factory and the SQLAlchemy models (`app/models/`) exist, but there
+are no routes or tests yet. `pydantic` isn't installed yet — see
+[`../docs/database-schema.md`](../docs/database-schema.md) and
 [`../docs/architecture.md`](../docs/architecture.md) for what's planned.
 
 For AI-agent-specific conventions (hooks, lint-on-save), see [`CLAUDE.md`](./CLAUDE.md)
@@ -29,6 +29,23 @@ uv add <package>                       # add a runtime dependency
 uv add --dev <package>                 # add a dev dependency
 ```
 
+### Database migrations
+
+Needs Postgres running (`docker compose up -d db` from the repo root) and a `.env`
+(see Configuration below). Run these through the script, not `flask db` directly:
+
+```bash
+scripts/db.sh migrate "describe the change"  # generate a migration (review it, then upgrade)
+scripts/db.sh upgrade                        # apply pending migrations
+scripts/db.sh downgrade                      # undo the latest migration
+scripts/db.sh current                        # which revision is the database at?
+scripts/db.sh history                        # list all migrations
+```
+
+Run `scripts/db.sh upgrade` after the first `docker compose up -d db` and after pulling
+anyone's new migrations. The full workflow and caveats are in
+[`../docs/database-schema.md`](../docs/database-schema.md#migrations).
+
 ## Configuration
 
 ```bash
@@ -41,22 +58,21 @@ Compose and Flask both read `.env`, never `.env.dev` directly. It has:
 | Variable | Used for |
 |---|---|
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT` | assembled into `SQLALCHEMY_DATABASE_URI` at runtime — discrete pieces, not one pre-built URI, so the same values also work as-is for Docker Compose's `db` service (see `../docs/deployment.md`) |
-| `CLIENT_ORIGIN` | `flask-cors`'s allowed origin — `http://localhost:4200` for local dev (`ng serve` and `flask run` are different origins); a no-op inside Docker Compose, where the browser only ever talks to nginx's single origin |
+| `CLIENT_HOST`, `CLIENT_PORT` | `flask-cors`'s allowed origin, built as `http://CLIENT_HOST:CLIENT_PORT` — `http://localhost:8002` for local dev (`ng serve` and `flask run` are different origins); a no-op inside Docker Compose, where the browser only ever talks to nginx's single origin |
 | `OPENROUTER_BASE_URL` | defaults to the real `https://openrouter.ai/api/v1`; override to point at the opt-in `mock-llm` Docker Compose service for local dev without real API cost (see `../docs/deployment.md`) |
 
 `OPENROUTER_API_KEY` is the one exception — deliberately **not** in `.env.dev`/`.env` or
 any other file in this repo. It comes only from wherever it already lives on your own
-machine (shell environment); every OpenRouter call (JD/CV analysis, persona/question-plan
+machine (shell environment). Docker Compose passes it in as a secret, mounted at
+`/run/secrets/openrouter_api_key` and referenced by `OPENROUTER_API_KEY_FILE`, so the app
+must read the file at that path. Every OpenRouter call (JD/CV analysis, persona/question-plan
 generation, live conversation, ask-back suggestions, STAR evaluation, Interviewer
 Performance Review, persona image generation) needs it.
 
 `config.py` has a `SECRET_KEY` placeholder that isn't actually wired to anything yet — not
 a real configuration requirement right now, so it isn't listed above.
 
-`config.py` currently reads a single pre-built `DATABASE_URL` — assembling it from the
-discrete `POSTGRES_*` pieces instead is a planned change, not yet made (see
-`../docs/deployment.md`). `OPENROUTER_API_KEY`/`OPENROUTER_BASE_URL` aren't wired up yet
-either.
+`OPENROUTER_API_KEY`/`OPENROUTER_BASE_URL` aren't wired up yet.
 
 ## Where things are documented
 

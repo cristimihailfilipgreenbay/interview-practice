@@ -59,9 +59,10 @@ One template, one real file, one exception:
     change from reading a pre-built `SQLALCHEMY_DATABASE_URI` to *assembling* one from
     these pieces at runtime (`postgresql://{user}:{password}@{host}:{port}/{db}`),
     otherwise the same credentials end up typed twice.
-  - **`CLIENT_ORIGIN`**: the server-side CORS allowed-origin, read by `flask-cors`
-    (`CORS(app, origins=[CLIENT_ORIGIN])`). Only actually matters for local dev
-    (`http://localhost:4200`, a different origin from `flask run`'s `:5000`) — inside
+  - **`CLIENT_HOST`** / **`CLIENT_PORT`**: the server-side CORS allowed-origin is built
+    from these as `http://CLIENT_HOST:CLIENT_PORT` and passed to `flask-cors`. Only
+    actually matters for local dev (`http://localhost:8002`, a different origin from
+    `flask run`'s `:5000`) — inside
     Docker Compose, the browser only ever talks to nginx's single origin (see the
     `client` service above), so CORS is a no-op there regardless of what this is set to.
   - **`OPENROUTER_BASE_URL`**: defaults to the real `https://openrouter.ai/api/v1`;
@@ -71,9 +72,12 @@ One template, one real file, one exception:
     `mock-llm` gets used.
 - **`OPENROUTER_API_KEY`** is the one exception — deliberately **not** in `.env.dev`/`.env`
   or any other file in this repo. It stays wherever it already lives on each developer's
-  own machine (shell environment). Docker Compose picks up host-environment variables
-  automatically via `${OPENROUTER_API_KEY}` substitution in `docker-compose.yml`, so it
-  never needs to be written to disk inside the project at all, checked in or not.
+  own machine (shell environment). `docker-compose.yml` declares it as a Compose
+  **secret** sourced from the host's `OPENROUTER_API_KEY` (`environment:` source), mounted
+  into the `server` container at `/run/secrets/openrouter_api_key`; the container gets
+  `OPENROUTER_API_KEY_FILE` pointing there and the app reads the key from that file. So it
+  never needs to be written to disk inside the project, and it isn't a plain env var in
+  the container (doesn't show up in `docker inspect`).
 
 `config.py` also has a `SECRET_KEY` placeholder, but it isn't wired to anything yet — not
 a real configuration requirement right now, so it's deliberately not in `.env.dev`/`.env`

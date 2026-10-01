@@ -8,7 +8,7 @@ Angular 22 single-page app (scaffolded with Angular CLI 22.2.0). It's the client
 
 ```bash
 npm install
-npm start                                   # ng serve, dev config, http://localhost:4200
+npm start                                   # ng serve, dev config, http://localhost:${CLIENT_PORT:-8002}
 npm run build                               # production build to dist/ (production is the default configuration)
 npm run watch                               # dev build in watch mode
 npm test                                    # ng test: Vitest via @angular/build:unit-test, jsdom, watch mode

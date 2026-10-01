@@ -35,9 +35,9 @@ reasoning behind decisions only gestured at here.
   natural place to enforce cross-field invariants like ADR 0009's judge-model exclusion
   rule, declaratively rather than as scattered manual checks.
 - **Database**: Postgres via SQLAlchemy, migrations via **Flask-Migrate**. `config.py`
-  already reads `SQLALCHEMY_DATABASE_URI` from `DATABASE_URL`, but
-  `flask-sqlalchemy`/`sqlalchemy`/`flask-migrate` still need to be added as dependencies
-  (see `database-schema.md`).
+  assembles `SQLALCHEMY_DATABASE_URI` from the discrete `POSTGRES_*` variables, and the
+  models live in `app/models/` (see `database-schema.md`, including its Migrations
+  section for how to create and apply migrations).
 - **File storage**: local disk, under the Flask app's `instance/` folder (see "Persona
   image generation" and "Document file storage & download" below) — fine since deployment
   is single-host Docker Compose, not multi-instance (see `deployment.md`), as long as that
