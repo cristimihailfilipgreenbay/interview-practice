@@ -64,6 +64,12 @@ bonus-task bar (2 medium + 1 hard) without needing LangChain — see
 - **Job description context is not RAG** — plain-text injection, no vector database or
   embeddings — see [ADR 0004](./adr/0004-job-description-context-is-not-rag.md). Worth
   keeping in mind if claiming that assignment optional task for bonus points.
+- **Abandoned uploads are never cleaned up.** A Document is uploaded when the candidate
+  picks the file, so abandoning Create Interview leaves an unsaved, unreferenced Document
+  (row, extracted text, file on disk) that nothing deletes — see
+  [ADR 0011](./adr/0011-documents-are-uploaded-before-the-interview-is-created.md). A
+  production deployment would need a scheduled cleanup job for this (and, with object
+  storage instead of local disk, a bucket lifecycle rule such as S3's for the file side).
 
 ## Open items (not yet designed)
 

@@ -37,8 +37,10 @@ step is implemented.
   see `domain-model.md`'s default-cascade table), both still independently editable again
   afterward. Also shapes the generated persona's knowledge scope/backstory and which
   ask-back questions make sense to suggest later.
-- **Job description** — select a previously saved one, or upload a new PDF/DOCX (parsed
-  server-side); a new upload prompts "save this for later?". Optional.
+- **Job description** — select a previously saved one, or upload a new PDF. The upload
+  happens immediately when the file is picked (parsed server-side, so a bad PDF is
+  reported right there), and prompts "save this for later?"; the form then holds only the
+  returned Document id. Optional.
 - **CV / cover letter** — same select-existing-or-upload-new-with-save-prompt pattern as
   job description. Optional.
 - **Interview helpers** toggle — boolean, default `false`. When on, each Q&A-phase question

@@ -14,7 +14,7 @@ A reusable piece of candidate-supplied text: a CV, a cover letter, or a job desc
 
 - `type`: `cv` | `cover_letter` | `job_description`
 - `name`: display name (e.g. original filename, or a name the user gives it)
-- `raw_text`: extracted text content (uploads are PDF/DOCX, parsed server-side on ingest) —
+- `raw_text`: extracted text content (uploads are PDF only, max `MAX_UPLOAD_MB`, default 10 MB, parsed server-side on ingest) —
   what the LLM phases actually read
 - `source_filename`: original uploaded filename, used both for reference and as the
   suggested filename when downloading the file back (see `file_path`)
@@ -27,7 +27,10 @@ A reusable piece of candidate-supplied text: a CV, a cover letter, or a job desc
   upload time. A Document row is *always* created on upload (an Interview's FK needs
   something to point at regardless), but only `saved = true` Documents appear in the
   select-existing list or the Preferences Documents tab — an unsaved one is effectively a
-  one-off, used for just that Interview.
+  one-off, used for just that Interview. Because the file is uploaded when it's picked,
+  before the Interview is submitted, a candidate who abandons the form leaves an unsaved,
+  unreferenced Document behind — accepted for now, see
+  [ADR 0011](./adr/0011-documents-are-uploaded-before-the-interview-is-created.md).
 - `created_at`
 
 ## JobApplication

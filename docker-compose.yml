@@ -11,6 +11,7 @@ services:
     environment:
       CLIENT_PORT: ${CLIENT_PORT:-8002}
       SERVER_PORT: ${SERVER_PORT:-8001}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
     depends_on:
       - server
 
@@ -24,6 +25,7 @@ services:
       POSTGRES_HOST: db
       SERVER_PORT: ${SERVER_PORT:-8001}
       CLIENT_PORT: ${CLIENT_PORT:-8002}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
       # The key itself is a Compose secret, mounted as a file; the app reads this path
       OPENROUTER_API_KEY_FILE: /run/secrets/openrouter_api_key
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}

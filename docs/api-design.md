@@ -27,6 +27,8 @@ Every error response: `{"error": {"code": "<SNAKE_CASE_CODE>", "message": "<huma
 |---|---|---|
 | 400 | Pydantic validation failure (malformed/missing fields) | `VALIDATION_ERROR` (`details` = Pydantic's per-field errors) |
 | 404 | Resource doesn't exist | `NOT_FOUND` |
+| 413 | Upload exceeds the size limit (`MAX_UPLOAD_MB`, default 10) | `FILE_TOO_LARGE` |
+| 422 | Well-formed request, but the uploaded file can't be used (not a readable PDF, encrypted, or no extractable text) | `UNPROCESSABLE_FILE` |
 | 409 | Request is well-formed but violates a business rule/current state | `JUDGE_MODEL_COLLISION`, `INTERVIEW_ALREADY_ENDED` |
 | 500 | Unexpected server error | `INTERNAL_ERROR` (no internals leaked in `message`) |
 
@@ -47,17 +49,19 @@ Create Interview submission. Request:
   "interviewer_role": "recruiter" | "technical_screener" | "hr" | "hiring_manager",
   "response_style": "concise" | "detailed",  // default "concise"
   "coaching_helpers_enabled": false,
-  "job_description": { "document_id": "uuid" } | { "upload": "<file>", "save": true } | null,
-  "cv": { "document_id": "uuid" } | { "upload": "<file>", "save": true } | null,
+  "job_description": { "document_id": "uuid" } | null,
+  "cv": { "document_id": "uuid" } | null,
   "job_application": { "id": "uuid" } | { "create_new": true } | null,  // null = standalone
   "phase_settings_override": { /* see database-schema.md — optional, includes interviewer_review */ }
 }
 ```
 
-- `job_description`/`cv` — either reference a saved `Document`, or upload a new one inline
-  (`multipart/form-data` variant of this request when either is present), with `save`
-  controlling `Document.saved` (see the Documents blueprint below — a `Document` row is
-  always created either way).
+- `job_description`/`cv` — always a reference to an existing `Document`, never an inline
+  file: this request is plain JSON. A new file is uploaded earlier, the moment the
+  candidate picks it, via `POST /api/documents` below, and the returned `id` goes here —
+  see [ADR 0011](./adr/0011-documents-are-uploaded-before-the-interview-is-created.md).
+  The server reads `Document.raw_text` from the database for the JD/CV analysis phase;
+  the client never re-sends the file.
 - `job_application` — `null` for a fully standalone Interview (no `JobApplication` at
   all); `{id}` to add this Interview as the next stage of an existing one (pre-fills
   `company_name`/`job_title`/documents from it, per `workflow.md`); `{create_new: true}`
@@ -113,14 +117,25 @@ available for the reflection/debugging use case. `404` until the Interview has e
 
 ### `GET /api/documents?type=cv|cover_letter|job_description`
 
-List saved Documents (`saved = true` only) — backs both the Create Interview
-select-existing control and the Preferences Documents tab.
+List saved Documents (`saved = true` only), newest first — backs both the Create Interview
+select-existing control and the Preferences Documents tab. Response `200`: an array of
+`{id, type, name, source_filename, saved, created_at}`. `raw_text` and `file_path` are
+deliberately not returned (the first is large and only the LLM phases need it; the second
+is a server filesystem path). An unknown `type` value is a `400`.
 
 ### `POST /api/documents`
 
 `multipart/form-data`: `file`, `type`, `name?`, `save: boolean`. A row is always created
 regardless of `save` (see `domain-model.md`'s `saved` field) — parses the upload
-server-side into `raw_text`, stores the original on local disk (`file_path`).
+server-side into `raw_text`, stores the original on local disk (`file_path`, relative to
+the Flask `instance/` folder). `name` defaults to the uploaded filename. Called as soon as
+the candidate picks a file in Create Interview (or uploads from the Preferences Documents
+tab), with `save` set from the "save this for later?" answer.
+
+**PDF only, max `MAX_UPLOAD_MB` (default 10 MB).** `400` for a missing file, a non-`.pdf` filename, or invalid
+fields; `413 FILE_TOO_LARGE` over the limit; `422 UNPROCESSABLE_FILE` if the file isn't a
+readable PDF, is encrypted, or has no text layer (scanned PDFs — there is no OCR).
+Response `201`: the created Document, same shape as the list items.
 
 ### `GET /api/documents/:id/download`
 
@@ -129,9 +144,14 @@ Binary response (the original uploaded file), `Content-Disposition` filename fro
 
 ### `PATCH /api/documents/:id`
 
-`{"name": "string"}` — rename, from the Preferences Documents tab.
+`{"name": "string"}` (1–200 characters after trimming) — rename, from the Preferences
+Documents tab. Response `200`: the updated Document.
 
 ### `DELETE /api/documents/:id`
+
+Hard delete: removes the row and the stored file from disk. Interviews and Job Applications
+that referenced the Document are kept and just lose the link (`ON DELETE SET NULL`, see
+`database-schema.md`). Response `204`.
 
 ## `applications` blueprint — `/api/applications`
 

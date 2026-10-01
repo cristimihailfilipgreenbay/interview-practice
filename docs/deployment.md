@@ -65,6 +65,13 @@ One template, one real file, one exception:
     `flask run`'s `:5000`) — inside
     Docker Compose, the browser only ever talks to nginx's single origin (see the
     `client` service above), so CORS is a no-op there regardless of what this is set to.
+  - **`MAX_UPLOAD_MB`**: largest document upload, in MB (default 10) — the size of the
+    whole upload request, so a file just under the limit plus its form fields can still be
+    rejected. Two places enforce it and must agree: Flask (`MAX_CONTENT_LENGTH`, with a
+    clearer per-file `413 FILE_TOO_LARGE`) and the `client` container's nginx
+    (`client_max_body_size`, rendered from the same variable — nginx's own default of 1 MB
+    would otherwise reject uploads first). Compose passes the same `${MAX_UPLOAD_MB:-10}` to
+    both services, the way it does `CLIENT_PORT`/`SERVER_PORT`.
   - **`OPENROUTER_BASE_URL`**: defaults to the real `https://openrouter.ai/api/v1`;
     override to point at the `mock-llm` service instead when that profile is running.
     Requires the backend's OpenRouter client to read this from config rather than
@@ -88,3 +95,6 @@ either.
 - CI/CD pipeline, cloud hosting choice — containerizing the app and running it via Compose
   is the scope of this pass; where it actually *runs* long-term is still open.
 - Horizontal scaling / multi-instance — see the local-disk-storage note above.
+- Scheduled maintenance, such as cleaning up abandoned document uploads (and object-storage
+  lifecycle rules if files ever leave local disk) — see
+  [ADR 0011](./adr/0011-documents-are-uploaded-before-the-interview-is-created.md).
