@@ -2,6 +2,10 @@ server {
     listen ${CLIENT_PORT};
     server_name _;
 
+    # Must match the server's MAX_UPLOAD_MB: nginx's 1m default would reject document
+    # uploads before they reach Flask.
+    client_max_body_size ${MAX_UPLOAD_MB}m;
+
     root /usr/share/nginx/html;
     index index.html;
 

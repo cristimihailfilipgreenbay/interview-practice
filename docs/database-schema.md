@@ -24,7 +24,7 @@ This is a single-implicit-user prototype (see [ADR 0002](./adr/0002-single-user-
 | `name` | `text` | display name |
 | `raw_text` | `text` | extracted content, what the LLM phases read |
 | `source_filename` | `text` | original uploaded filename; always present, uploads are the only ingestion path |
-| `file_path` | `text` | local-disk path (under the Flask app's `instance/` folder) to the original uploaded file, so it can be downloaded back exactly as uploaded — same mechanism as `interviews.persona_image_path` |
+| `file_path` | `text` | local-disk path, stored *relative to* the Flask app's `instance/` folder (e.g. `uploads/documents/<uuid>.pdf`), to the original uploaded file, so it can be downloaded back exactly as uploaded — same mechanism as `interviews.persona_image_path` |
 | `saved` | `boolean` | default from the candidate's "save this for later?" choice; a row always exists regardless (an Interview's FK needs something to point at), only `saved = true` rows are offered in the select-existing list |
 | `created_at` | `timestamptz` | default now() |
 
