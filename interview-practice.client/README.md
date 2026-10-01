@@ -1,59 +1,40 @@
-# InterviewPracticeClient
+# Interview Practice — Client
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.0.
+Angular 22 SPA, standalone components, zoneless. The candidate-facing half of the
+[Interview Practice](../README.md) app — talks only to the Flask API
+(`interview-practice.server`), never calls OpenRouter directly.
 
-## Development server
+UI components via [Spartan](https://spartan.ng) (+ Tailwind CSS); request/response shapes
+validated with Zod. See [`../docs/architecture.md`](../docs/architecture.md) for the full
+stack rationale, and [`../docs/adr/`](../docs/adr/) for why (e.g.
+[ADR 0010](../docs/adr/0010-spartan-for-ui-components.md) for the Spartan choice).
 
-To start a local development server, run:
+For AI-agent-specific conventions (file naming, testing patterns, hooks), see
+[`CLAUDE.md`](./CLAUDE.md) rather than this file.
 
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Commands
 
 ```bash
-ng generate component component-name
+npm install
+npm start                                   # ng serve, dev config, http://localhost:4200
+npm run build                               # production build to dist/
+npm run watch                               # dev build in watch mode
+npm test                                    # ng test: Vitest via @angular/build:unit-test, jsdom
+npm run lint                                # ng lint
+npx prettier --write .                      # format
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+No e2e framework is set up.
 
-```bash
-ng generate --help
-```
+## Configuration
 
-## Building
+The server's base URL lives in `src/environments/environment.ts` /
+`environment.development.ts` (`environment.apiUrl`) — not an OS-level env var, since this
+ships as a static build with no `process.env` at runtime in the browser. See
+[`../docs/architecture.md`](../docs/architecture.md) for the dev-vs-production values and
+why local dev hits real cross-origin CORS while the Docker build doesn't.
 
-To build the project run:
+## Where things are documented
 
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+This README is just how to run it. What it *does* and why lives in
+[`../docs/`](../docs/) — start with [`../docs/overview.md`](../docs/overview.md).
