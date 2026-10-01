@@ -7,9 +7,9 @@ factory (`create_app()`) with one Blueprint per domain area
 (`interviews`/`documents`/`applications`/`preferences`) — see
 [`../docs/api-design.md`](../docs/api-design.md) for the full REST contract.
 
-Early-stage scaffold: currently a bare Flask app with no routes, models, or tests beyond
-what's listed below. `flask-sqlalchemy`, `flask-migrate`, and `pydantic` aren't installed
-yet — see [`../docs/database-schema.md`](../docs/database-schema.md) and
+Early-stage: the Flask app factory and the SQLAlchemy models (`app/models/`) exist, but there
+are no routes or tests yet. `pydantic` isn't installed yet — see
+[`../docs/database-schema.md`](../docs/database-schema.md) and
 [`../docs/architecture.md`](../docs/architecture.md) for what's planned.
 
 For AI-agent-specific conventions (hooks, lint-on-save), see [`CLAUDE.md`](./CLAUDE.md)
@@ -28,6 +28,23 @@ uv run pytest                          # run tests (none exist yet)
 uv add <package>                       # add a runtime dependency
 uv add --dev <package>                 # add a dev dependency
 ```
+
+### Database migrations
+
+Needs Postgres running (`docker compose up -d db` from the repo root) and a `.env`
+(see Configuration below). Run these through the script, not `flask db` directly:
+
+```bash
+scripts/db.sh migrate "describe the change"  # generate a migration (review it, then upgrade)
+scripts/db.sh upgrade                        # apply pending migrations
+scripts/db.sh downgrade                      # undo the latest migration
+scripts/db.sh current                        # which revision is the database at?
+scripts/db.sh history                        # list all migrations
+```
+
+Run `scripts/db.sh upgrade` after the first `docker compose up -d db` and after pulling
+anyone's new migrations. The full workflow and caveats are in
+[`../docs/database-schema.md`](../docs/database-schema.md#migrations).
 
 ## Configuration
 
@@ -55,10 +72,7 @@ Performance Review, persona image generation) needs it.
 `config.py` has a `SECRET_KEY` placeholder that isn't actually wired to anything yet — not
 a real configuration requirement right now, so it isn't listed above.
 
-`config.py` currently reads a single pre-built `DATABASE_URL` — assembling it from the
-discrete `POSTGRES_*` pieces instead is a planned change, not yet made (see
-`../docs/deployment.md`). `OPENROUTER_API_KEY`/`OPENROUTER_BASE_URL` aren't wired up yet
-either.
+`OPENROUTER_API_KEY`/`OPENROUTER_BASE_URL` aren't wired up yet.
 
 ## Where things are documented
 
