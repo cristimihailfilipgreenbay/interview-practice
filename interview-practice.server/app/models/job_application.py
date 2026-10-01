@@ -21,10 +21,10 @@ class JobApplication(Base):
     company_name: Mapped[str] = mapped_column(String)
     job_title: Mapped[str] = mapped_column(String)
     job_description_document_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("documents.id", ondelete="SET NULL")
+        ForeignKey("documents.id", ondelete="SET NULL"), index=True
     )
     cv_document_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("documents.id", ondelete="SET NULL")
+        ForeignKey("documents.id", ondelete="SET NULL"), index=True
     )
     progress_score: Mapped[int | None]
     progress_summary: Mapped[str | None] = mapped_column(Text)

@@ -50,7 +50,7 @@ class Interview(Base):
 
     id: Mapped[uuid.UUID] = uuid_pk()
     job_application_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("job_applications.id", ondelete="CASCADE")
+        ForeignKey("job_applications.id", ondelete="CASCADE"), index=True
     )
     job_title: Mapped[str] = mapped_column(String)
     company_name: Mapped[str | None] = mapped_column(String)
@@ -71,10 +71,10 @@ class Interview(Base):
     persona_title: Mapped[str] = mapped_column(String)
     persona_image_path: Mapped[str] = mapped_column(String)
     job_description_document_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("documents.id", ondelete="SET NULL")
+        ForeignKey("documents.id", ondelete="SET NULL"), index=True
     )
     cv_document_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("documents.id", ondelete="SET NULL")
+        ForeignKey("documents.id", ondelete="SET NULL"), index=True
     )
     coaching_helpers_enabled: Mapped[bool] = mapped_column(
         Boolean, server_default=false()
