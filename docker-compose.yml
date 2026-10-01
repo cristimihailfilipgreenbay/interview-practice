@@ -1,0 +1,47 @@
+# See docs/deployment.md for the reasoning behind every decision here.
+
+name: interview-practice
+
+services:
+  client:
+    build:
+      context: ./interview-practice.client
+    ports:
+      - "4200:80"
+    depends_on:
+      - server
+
+  server:
+    build:
+      context: ./interview-practice.server
+    env_file:
+      - ./interview-practice.server/.env
+    environment:
+      # Overrides .env's POSTGRES_HOST=localhost for container-to-container networking
+      POSTGRES_HOST: db
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set this in your shell, never in a file here}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+    ports:
+      - "5000:5000"
+    volumes:
+      - uploads:/app/instance/uploads
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    env_file:
+      - ./interview-practice.server/.env
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  # Opt-in stand-in for OpenRouter. Off by default; only starts with `--profile mock`.
+  mock-llm:
+    image: mockserver/mockserver
+    profiles: ["mock"]
+    ports:
+      - "1080:1080"
+
+volumes:
+  db-data:
+  uploads:
