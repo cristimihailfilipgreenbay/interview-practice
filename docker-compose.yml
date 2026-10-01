@@ -7,7 +7,10 @@ services:
     build:
       context: ./interview-practice.client
     ports:
-      - "4200:80"
+      - "${CLIENT_PORT:-8002}:${CLIENT_PORT:-8002}"
+    environment:
+      CLIENT_PORT: ${CLIENT_PORT:-8002}
+      SERVER_PORT: ${SERVER_PORT:-8001}
     depends_on:
       - server
 
@@ -19,10 +22,15 @@ services:
     environment:
       # Overrides .env's POSTGRES_HOST=localhost for container-to-container networking
       POSTGRES_HOST: db
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set this in your shell, never in a file here}
+      SERVER_PORT: ${SERVER_PORT:-8001}
+      CLIENT_PORT: ${CLIENT_PORT:-8002}
+      # The key itself is a Compose secret, mounted as a file; the app reads this path
+      OPENROUTER_API_KEY_FILE: /run/secrets/openrouter_api_key
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+    secrets:
+      - openrouter_api_key
     ports:
-      - "5000:5000"
+      - "${SERVER_PORT:-8001}:${SERVER_PORT:-8001}"
     volumes:
       - uploads:/app/instance/uploads
     depends_on:
@@ -30,6 +38,9 @@ services:
 
   db:
     image: postgres:16-alpine
+    ports:
+      # Loopback only: lets host-run Flask/Alembic commands reach the DB
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     env_file:
       - ./interview-practice.server/.env
     volumes:
@@ -41,6 +52,11 @@ services:
     profiles: ["mock"]
     ports:
       - "1080:1080"
+
+secrets:
+  openrouter_api_key:
+    # Read from the host shell's OPENROUTER_API_KEY, never from a file in this repo
+    environment: OPENROUTER_API_KEY
 
 volumes:
   db-data:

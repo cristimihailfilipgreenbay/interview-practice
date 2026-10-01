@@ -1,5 +1,5 @@
 server {
-    listen 80;
+    listen ${CLIENT_PORT};
     server_name _;
 
     root /usr/share/nginx/html;
@@ -8,7 +8,7 @@ server {
     # Reverse-proxied to the `server` Compose service by name — same origin from the
     # browser's perspective, so no CORS is involved in this deployment shape at all.
     location /api/ {
-        proxy_pass http://server:5000/api/;
+        proxy_pass http://server:${SERVER_PORT}/api/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

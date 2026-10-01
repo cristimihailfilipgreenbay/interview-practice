@@ -41,12 +41,14 @@ Compose and Flask both read `.env`, never `.env.dev` directly. It has:
 | Variable | Used for |
 |---|---|
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT` | assembled into `SQLALCHEMY_DATABASE_URI` at runtime — discrete pieces, not one pre-built URI, so the same values also work as-is for Docker Compose's `db` service (see `../docs/deployment.md`) |
-| `CLIENT_ORIGIN` | `flask-cors`'s allowed origin — `http://localhost:4200` for local dev (`ng serve` and `flask run` are different origins); a no-op inside Docker Compose, where the browser only ever talks to nginx's single origin |
+| `CLIENT_HOST`, `CLIENT_PORT` | `flask-cors`'s allowed origin, built as `http://CLIENT_HOST:CLIENT_PORT` — `http://localhost:8002` for local dev (`ng serve` and `flask run` are different origins); a no-op inside Docker Compose, where the browser only ever talks to nginx's single origin |
 | `OPENROUTER_BASE_URL` | defaults to the real `https://openrouter.ai/api/v1`; override to point at the opt-in `mock-llm` Docker Compose service for local dev without real API cost (see `../docs/deployment.md`) |
 
 `OPENROUTER_API_KEY` is the one exception — deliberately **not** in `.env.dev`/`.env` or
 any other file in this repo. It comes only from wherever it already lives on your own
-machine (shell environment); every OpenRouter call (JD/CV analysis, persona/question-plan
+machine (shell environment). Docker Compose passes it in as a secret, mounted at
+`/run/secrets/openrouter_api_key` and referenced by `OPENROUTER_API_KEY_FILE`, so the app
+must read the file at that path. Every OpenRouter call (JD/CV analysis, persona/question-plan
 generation, live conversation, ask-back suggestions, STAR evaluation, Interviewer
 Performance Review, persona image generation) needs it.
 

@@ -10,8 +10,9 @@ RUN uv sync --frozen --no-dev
 
 COPY . .
 
-EXPOSE 5000
+ENV SERVER_PORT=8001
+EXPOSE ${SERVER_PORT}
 
 # Real WSGI server, not flask run's dev server — see ../docs/deployment.md.
 # Once flask-migrate is added, this becomes `uv run flask db upgrade && uv run gunicorn ...`.
-CMD ["uv", "run", "gunicorn", "--bind", "0.0.0.0:5000", "app.app:app"]
+CMD ["sh", "-c", "exec uv run gunicorn --bind 0.0.0.0:${SERVER_PORT} 'app.app:create_app()'"]
