@@ -14,6 +14,16 @@
     "paths": {
       "@app/*": ["./src/app/*"],
       "@env/*": ["./src/environments/*"],
+      "@spartan-ng/helm/button": ["./src/app/shared/components/ui/button/src/index.ts"],
+      "@spartan-ng/helm/utils": ["./src/app/shared/components/ui/utils/src/index.ts"],
+      "@spartan-ng/helm/card": ["./src/app/shared/components/ui/card/src/index.ts"],
+      "@spartan-ng/helm/badge": ["./src/app/shared/components/ui/badge/src/index.ts"],
+      "@spartan-ng/helm/input": ["./src/app/shared/components/ui/input/src/index.ts"],
+      "@spartan-ng/helm/label": ["./src/app/shared/components/ui/label/src/index.ts"],
+      "@spartan-ng/helm/checkbox": ["./src/app/shared/components/ui/checkbox/src/index.ts"],
+      "@spartan-ng/helm/radio-group": ["./src/app/shared/components/ui/radio-group/src/index.ts"],
+      "@spartan-ng/helm/select": ["./src/app/shared/components/ui/select/src/index.ts"]
+    }
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
