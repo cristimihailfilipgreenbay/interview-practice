@@ -4,6 +4,10 @@ from flask.cli import load_dotenv
 
 load_dotenv()
 
+
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY")
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
+    SQLALCHEMY_DATABASE_URI = (
+        f"postgresql+psycopg://{os.environ['POSTGRES_USER']}:"
+        f"{os.environ['POSTGRES_PASSWORD']}@{os.environ['POSTGRES_HOST']}:"
+        f"{os.environ['POSTGRES_PORT']}/{os.environ['POSTGRES_DB']}"
+    )
