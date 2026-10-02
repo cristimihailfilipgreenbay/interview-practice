@@ -1,0 +1,93 @@
+<section aria-labelledby="interview-structure-heading" hlmCard>
+  <div hlmCardHeader>
+    <h3 class="flex items-center gap-2" hlmCardTitle id="interview-structure-heading">
+      <ng-icon class="mb-0.5" name="lucideSlidersHorizontal" />
+      Interview Structure
+    </h3>
+  </div>
+
+  <div hlmCardContent>
+    <div hlmFieldGroup>
+      <div class="flex flex-row gap-6">
+        <div hlmField>
+          <span hlmFieldLabel id="difficulty-label">Difficulty</span>
+          <div
+            (valueChange)="onDifficultyChange($event)"
+            [formField]="interviewForm().difficulty"
+            [nullable]="false"
+            aria-labelledby="difficulty-label"
+            hlmToggleGroup
+            spacing="2"
+            variant="outline"
+          >
+            @for (difficulty of difficulties; track difficulty.value) {
+              <button [value]="difficulty.value" hlmToggleGroupItem>
+                {{ difficulty.label }}
+              </button>
+            }
+          </div>
+        </div>
+        <div hlmField>
+          <span hlmFieldLabel id="interview-type">Type</span>
+          <div
+            [formField]="interviewForm().interviewType"
+            [nullable]="false"
+            aria-labelledby="interview-type"
+            hlmToggleGroup
+            spacing="2"
+            variant="outline"
+          >
+            @for (type of interviewTypes; track type.value) {
+              <button
+                [value]="type.value"
+                class="group-data-[spacing=2]/toggle-group:px-6"
+                hlmToggleGroupItem
+              >
+                <ng-icon [name]="type.icon" />
+                {{ type.label }}
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-row items-center gap-6">
+        <div class="gap-5" hlmField>
+          <div class="flex flex-row justify-between">
+            <label for="target-questions" hlmFieldLabel>Number of Questions</label>
+            <div class="bg-primary/15 p-2.75 border border-primary/20" hlmBadge>
+              {{ interviewForm().targetQuestionCount().value() }} Questions
+            </div>
+          </div>
+          <hlm-slider
+            (valueChange)="setQuestionCount($event)"
+            [max]="maxQuestionCount"
+            [min]="1"
+            [value]="[interviewForm().targetQuestionCount().value()]"
+            id="target-questions"
+            valueTooltip
+          />
+        </div>
+        <div hlmField>
+          <span hlmFieldLabel id="response-style-label">Response style</span>
+          <div
+            [formField]="interviewForm().responseStyle"
+            [nullable]="false"
+            aria-labelledby="response-style-label"
+            hlmToggleGroup
+          >
+            @for (responseStyle of responseStyles; track responseStyle.value) {
+              <button
+                [value]="responseStyle.value"
+                class="group-data-[spacing=0]/toggle-group:px-10 py-2 h-auto rounded-xl data-[state=on]:bg-primary/40"
+                hlmToggleGroupItem
+              >
+                {{ responseStyle.label }}
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

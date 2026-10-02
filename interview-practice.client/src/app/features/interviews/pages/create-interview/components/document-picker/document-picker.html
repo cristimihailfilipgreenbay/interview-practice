@@ -1,0 +1,72 @@
+<div class="flex flex-col gap-4" hlmField>
+  <label [attr.for]="selectId" hlmFieldLabel>{{ label() }}</label>
+
+  @if (uploadedDocument(); as document) {
+    <div class="w-full -mt-2" hlmAttachment>
+      <div hlmAttachmentMedia>
+        <ng-icon name="lucideFileText" />
+      </div>
+      <div class="min-w-0 flex-1" hlmAttachmentContent>
+        <div class="truncate" hlmAttachmentTitle>{{ document.name }}</div>
+        <div hlmAttachmentDescription>PDF</div>
+      </div>
+      <div hlmAttachmentActions>
+        <button
+          (click)="removeUpload()"
+          [attr.aria-label]="'Remove ' + document.name"
+          hlmAttachmentAction
+          type="button"
+        >
+          <ng-icon name="lucideX" />
+        </button>
+      </div>
+    </div>
+
+    <label
+      [aria-selected]="document.saved"
+      class="flex items-center gap-2 text-sm ml-2 text-muted-foreground aria-selected:text-gray-100/80"
+    >
+      <hlm-checkbox (checkedChange)="setSaved($event)" [checked]="document.saved" />
+      Save for later
+    </label>
+  } @else {
+    <hlm-select
+      [(value)]="value"
+      [disabled]="selectDisabled()"
+      [itemToString]="documentName"
+      class="min-w-0 flex-1"
+    >
+      <hlm-select-trigger [buttonId]="selectId" class="w-full">
+        <hlm-select-value [placeholder]="placeholder()" />
+      </hlm-select-trigger>
+      <hlm-select-content *hlmSelectPortal>
+        <hlm-select-item [value]="null">None</hlm-select-item>
+        @for (doc of options(); track doc.id) {
+          <hlm-select-item [value]="doc.id">{{ doc.name }}</hlm-select-item>
+        }
+      </hlm-select-content>
+    </hlm-select>
+
+    @if (!disabled()) {
+      <app-file-dropzone
+        (fileSelected)="upload($event)"
+        [busy]="uploading()"
+        accept=".pdf,application/pdf"
+      >
+        Upload new {{ label() }}
+      </app-file-dropzone>
+    }
+  }
+
+  @if (savedDocuments.error()) {
+    <hlm-field-error class="flex items-center gap-2" forceShow>
+      Could not load your saved documents.
+      <button (click)="reload()" class="h-auto p-0" hlmBtn size="xs" type="button" variant="link">
+        Try again
+      </button>
+    </hlm-field-error>
+  }
+  @if (uploadError(); as message) {
+    <hlm-field-error forceShow>{{ message }}</hlm-field-error>
+  }
+</div>

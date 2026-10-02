@@ -24,7 +24,13 @@ import { classes } from '@spartan-ng/helm/utils';
   },
   template: `
     @if (_display()) {
-      <ng-content />
+      @if (errors(); as list) {
+        @for (error of list; track $index) {
+          <span class="block">{{ error.message }}</span>
+        }
+      } @else {
+        <ng-content />
+      }
     }
   `,
 })
@@ -39,8 +45,19 @@ export class HlmFieldError implements OnDestroy {
   public readonly validator = input<string>();
   /** Forces the error message to be visible regardless of the control's validation state. */
   public readonly forceShow = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
+  /**
+   * Signal-forms errors (`field().errors()`), rendered one message per line. When set, the
+   * error is shown based on these and `visible`, instead of Spartan's own field state.
+   */
+  public readonly errors = input<readonly { message?: string }[] | null>(null);
+  /** With `errors`: whether to show them yet, typically `field().touched()`. */
+  public readonly visible = input(true);
   private readonly _field = inject(BrnField, { optional: true });
   protected readonly _hasError = computed(() => {
+    const supplied = this.errors();
+    if (supplied !== null) {
+      return supplied.length > 0 && this.visible();
+    }
     const errors = this._field?.errors();
     if (!errors) return false;
 
@@ -54,8 +71,10 @@ export class HlmFieldError implements OnDestroy {
   private readonly _a11y = inject(BrnFieldA11yService, { optional: true, host: true });
   private _registeredId?: string | undefined;
   private readonly _hasParentField = !!this._field;
-  protected readonly _display = computed(
-    () => !this._hasParentField || this.forceShow() || this._hasError(),
+  protected readonly _display = computed(() =>
+    this.errors() !== null
+      ? this._hasError()
+      : !this._hasParentField || this.forceShow() || this._hasError(),
   );
   private readonly _cleanup: EffectRef | null = this._a11y
     ? effect(() => {

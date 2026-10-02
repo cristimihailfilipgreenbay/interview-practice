@@ -1,0 +1,67 @@
+<section aria-labelledby="interview-persona-heading" hlmCard>
+  <div hlmCardHeader>
+    <h3 class="flex items-center gap-2" hlmCardTitle id="interview-persona-heading">
+      <ng-icon class="mb-0.5" name="lucideUserCog" />
+      Interview Persona
+    </h3>
+  </div>
+
+  <div hlmCardContent>
+    <div hlmFieldGroup>
+      <div class="flex flex-row gap-6">
+        <div hlmField>
+          <label for="interviewer-role" hlmFieldLabel>Role</label>
+          <hlm-select
+            (valueChange)="onRoleChange($event)"
+            [formField]="interviewForm().interviewerRole"
+            [itemToString]="interviewerRoleLabel"
+            id="interviewer-role"
+          >
+            <hlm-select-trigger class="w-full">
+              <hlm-select-value />
+            </hlm-select-trigger>
+            <hlm-select-content *hlmSelectPortal>
+              @for (role of interviewerRoles; track role.value) {
+                <hlm-select-item [value]="role.value">
+                  {{ role.label }}
+                </hlm-select-item>
+              }
+            </hlm-select-content>
+          </hlm-select>
+        </div>
+        <div hlmField>
+          <span hlmFieldLabel id="tone-label">Tone</span>
+          <div
+            [formField]="interviewForm().tone"
+            [nullable]="false"
+            aria-labelledby="tone-label"
+            hlmToggleGroup
+            spacing="2"
+            variant="outline"
+          >
+            @for (tone of interviewerTones; track tone.value) {
+              <button [value]="tone.value" hlmToggleGroupItem>
+                {{ tone.label }}
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="px-8 py-4 bg-primary/10 rounded-xl" hlmField orientation="horizontal">
+        <hlm-avatar class="size-13 rounded-xl after:border-0">
+          <span class="bg-yellow-400/10 rounded-xl after:border-0" hlmAvatarFallback>
+            <ng-icon class="text-yellow-400" name="lucideLightbulb" size="20px" />
+          </span>
+        </hlm-avatar>
+        <div class="flex flex-1 flex-col">
+          <label class="text-[16px] font-bold" for="helpers-switch">Coaching Helpers</label>
+          <div class="text-muted-foreground">
+            Real-time hints designed to help when in need enabled
+          </div>
+        </div>
+        <hlm-switch [formField]="interviewForm().coachingHelpersEnabled" id="helpers-switch" />
+      </div>
+    </div>
+  </div>
+</section>

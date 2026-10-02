@@ -1,0 +1,62 @@
+<section aria-labelledby="job-context-heading" hlmCard>
+  <div hlmCardHeader>
+    <h3 class="flex items-center gap-2" hlmCardTitle id="job-context-heading">
+      <ng-icon class="mb-0.5" name="lucideBriefcase" />
+      Job Context
+    </h3>
+  </div>
+
+  <div hlmCardContent>
+    <div class="gap-4" hlmFieldGroup>
+      <div class="flex flex-row gap-6">
+        <div hlmField>
+          <label for="job-title" hlmFieldLabel>Job title</label>
+          <input
+            [formField]="interviewForm().jobTitle"
+            hlmInput
+            id="job-title"
+            placeholder="e.g., Software Engineer"
+          />
+          <hlm-field-error
+            [errors]="interviewForm().jobTitle().errors()"
+            [visible]="interviewForm().jobTitle().touched()"
+          />
+        </div>
+        <div hlmField>
+          <label for="company-name" hlmFieldLabel>
+            Company
+            <span class="text-muted-foreground"> (optional) </span>
+          </label>
+          <input
+            [formField]="interviewForm().companyName"
+            hlmInput
+            id="company-name"
+            placeholder="e.g., Siemens"
+          />
+          <hlm-field-error
+            [errors]="interviewForm().companyName().errors()"
+            [visible]="interviewForm().companyName().touched()"
+          />
+        </div>
+      </div>
+
+      <div hlmField>
+        <span hlmFieldLabel id="seniority-label">Seniority</span>
+        <div
+          [formField]="interviewForm().seniority"
+          [nullable]="false"
+          aria-labelledby="seniority-label"
+          hlmToggleGroup
+          spacing="2"
+          variant="outline"
+        >
+          @for (seniority of seniorities; track seniority.value) {
+            <button [value]="seniority.value" hlmToggleGroupItem>
+              {{ seniority.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
