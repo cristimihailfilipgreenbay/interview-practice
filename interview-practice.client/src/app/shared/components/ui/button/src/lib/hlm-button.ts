@@ -1,8 +1,24 @@
-import { booleanAttribute, Directive, input, signal } from '@angular/core';
+import {
+  ApplicationRef,
+  booleanAttribute,
+  ComponentRef,
+  createComponent,
+  DestroyRef,
+  Directive,
+  effect,
+  ElementRef,
+  EnvironmentInjector,
+  inject,
+  input,
+  signal,
+  untracked,
+} from '@angular/core';
 import { BrnButton } from '@spartan-ng/brain/button';
 import { classes } from '@spartan-ng/helm/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { ClassValue } from 'clsx';
+import { BUTTON_LABEL_CLASSES } from './hlm-button-label';
+import { HlmButtonSpinner } from './hlm-button-spinner';
 import { injectBrnButtonConfig } from './hlm-button.token';
 
 export const buttonVariants = cva(
@@ -52,24 +68,52 @@ export type ButtonVariants = VariantProps<typeof buttonVariants>;
     'data-slot': 'button',
     '[attr.aria-busy]': 'loading() || null',
     '[attr.data-loading]': 'loading() || null',
+    '[attr.data-loading-phase]': '_loadingPhase()',
     '(click)': 'onClick($event)',
   },
 })
 export class HlmButton {
   /**
    * Busy state for async actions. Unlike `disabled`, the button keeps focus and its look;
-   * clicks are swallowed so the action can't fire twice. Render the spinner as content.
+   * clicks are swallowed so the action can't fire twice. To swap the content for a spinner,
+   * wrap the content in `hlmBtnLabel`; the button adds the spinner itself on first load.
    */
   public readonly loading = input(false, { transform: booleanAttribute });
+  /** `loading` → the spinner slides in; `leaving` → it slides out again before returning to `idle`. */
+  protected readonly _loadingPhase = signal<'idle' | 'loading' | 'leaving'>('idle');
   private readonly _config = injectBrnButtonConfig();
   public readonly variant = input<ButtonVariants['variant']>(this._config.variant);
   public readonly size = input<ButtonVariants['size']>(this._config.size);
   private readonly _additionalClasses = signal<ClassValue>('');
+  private _leaveTimer: ReturnType<typeof setTimeout> | undefined;
+  private readonly _host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly _environmentInjector = inject(EnvironmentInjector);
+  private readonly _appRef = inject(ApplicationRef);
+  private _spinner: ComponentRef<HlmButtonSpinner> | undefined;
 
   constructor() {
+    effect(() => {
+      const loading = this.loading();
+      untracked(() => {
+        clearTimeout(this._leaveTimer);
+        if (loading) {
+          this._ensureLabel();
+          this._ensureSpinner();
+          this._loadingPhase.set('loading');
+        } else if (this._loadingPhase() === 'loading') {
+          this._loadingPhase.set('leaving');
+          this._leaveTimer = setTimeout(() => this._loadingPhase.set('idle'), 300);
+        }
+      });
+    });
+    inject(DestroyRef).onDestroy(() => {
+      clearTimeout(this._leaveTimer);
+      this._spinner?.destroy();
+    });
+
     classes(() => [
       buttonVariants({ variant: this.variant(), size: this.size() }),
-      'data-loading:cursor-progress',
+      'relative data-loading:cursor-progress data-[loading-phase=loading]:overflow-hidden data-[loading-phase=leaving]:overflow-hidden',
       this._additionalClasses(),
     ]);
   }
@@ -83,5 +127,37 @@ export class HlmButton {
       event.preventDefault();
       event.stopImmediatePropagation();
     }
+  }
+
+  /**
+   * Wraps plain text content in the label slot on first load. Content with control flow
+   * (`@if`, `@for`) can't be moved without breaking Angular's insertion anchors, so it is left
+   * alone and needs an explicit `hlmBtnLabel`.
+   */
+  private _ensureLabel(): void {
+    const nodes = Array.from(this._host.childNodes);
+    const hasLabel = this._host.querySelector(':scope > [data-slot="button-label"]');
+    if (hasLabel || nodes.some((node) => node.nodeType === Node.COMMENT_NODE)) {
+      return;
+    }
+    const label = this._host.ownerDocument.createElement('span');
+    label.dataset['slot'] = 'button-label';
+    label.className = BUTTON_LABEL_CLASSES;
+    this._host.insertBefore(label, this._host.firstChild);
+    nodes.forEach((node) => label.appendChild(node));
+  }
+
+  /** Adds the spinner slot on first load, unless the button already has its own. */
+  private _ensureSpinner(): void {
+    if (this._spinner || this._host.querySelector(':scope > [data-slot="button-spinner"]')) {
+      return;
+    }
+    const element = this._host.ownerDocument.createElement('span');
+    this._host.appendChild(element);
+    this._spinner = createComponent(HlmButtonSpinner, {
+      environmentInjector: this._environmentInjector,
+      hostElement: element,
+    });
+    this._appRef.attachView(this._spinner.hostView);
   }
 }
