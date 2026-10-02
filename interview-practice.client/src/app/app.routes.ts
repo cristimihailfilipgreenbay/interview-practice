@@ -1,8 +1,11 @@
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [
-  // Temporary until the Home page exists.
-  { path: '', pathMatch: 'full', redirectTo: 'interviews/new' },
+  {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () => import('./features/home/pages/home/home').then((m) => m.Home),
+  },
   {
     path: 'interviews',
     loadChildren: () =>
