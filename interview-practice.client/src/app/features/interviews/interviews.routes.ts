@@ -8,4 +8,9 @@ export const INTERVIEWS_ROUTES: Routes = [
     loadComponent: () =>
       import('./pages/create-interview/create-interview').then((m) => m.CreateInterview),
   },
+  {
+    path: ':id',
+    loadComponent: () =>
+      import('./pages/interview-session/interview-session').then((m) => m.InterviewSession),
+  },
 ];
