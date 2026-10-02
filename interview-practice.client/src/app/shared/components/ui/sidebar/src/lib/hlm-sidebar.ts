@@ -67,17 +67,13 @@ import { injectHlmSidebarConfig } from './hlm-sidebar.token';
   `,
 })
 export class HlmSidebar {
-  protected readonly _sidebarService = inject(HlmSidebarService);
-  private readonly _config = injectHlmSidebarConfig();
-  public readonly sidebarWidthMobile = input<string>(this._config.sidebarWidthMobile);
-
   public readonly side = input<'left' | 'right'>('left');
-  public readonly variant = input<SidebarVariant>(this._sidebarService.variant());
   public readonly collapsible = input<'offcanvas' | 'icon' | 'none'>('offcanvas');
-
   public readonly srOnlySheetTitle = input<string>('Sidebar');
   public readonly srOnlySheetDescription = input<string>('Displays the mobile sidebar.');
-
+  public readonly sidebarContainerClass = input<ClassValue>('');
+  protected readonly _sidebarService = inject(HlmSidebarService);
+  public readonly variant = input<SidebarVariant>(this._sidebarService.variant());
   protected readonly _sidebarGapComputedClass = computed(() =>
     hlm(
       'transition-[width] duration-200 ease-linear relative w-(--sidebar-width) bg-transparent',
@@ -88,8 +84,6 @@ export class HlmSidebar {
         : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
     ),
   );
-
-  public readonly sidebarContainerClass = input<ClassValue>('');
   protected readonly _sidebarContainerComputedClass = computed(() =>
     hlm(
       'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear data-[side=left]:left-0 data-[side=left]:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] data-[side=right]:right-0 data-[side=right]:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] md:flex',
@@ -99,11 +93,11 @@ export class HlmSidebar {
       this.sidebarContainerClass(),
     ),
   );
-
   protected readonly _dataSlot = computed(() => {
     return !this._sidebarService.isMobile() ? 'sidebar' : undefined;
   });
-
+  private readonly _config = injectHlmSidebarConfig();
+  public readonly sidebarWidthMobile = input<string>(this._config.sidebarWidthMobile);
   private readonly _collapsibleAndNonMobile = computed(() => {
     return this.collapsible() !== 'none' && !this._sidebarService.isMobile();
   });

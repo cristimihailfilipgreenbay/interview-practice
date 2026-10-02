@@ -1,6 +1,6 @@
 import { type BooleanInput } from '@angular/cdk/coercion';
 import { CdkMenuItem, CdkMenuItemCheckbox, CdkMenuItemSelectable } from '@angular/cdk/menu';
-import { Directive, booleanAttribute, inject, input } from '@angular/core';
+import { booleanAttribute, Directive, inject, input } from '@angular/core';
 import { classes } from '@spartan-ng/helm/utils';
 import { HlmDropdownMenuFocusOnHover } from './hlm-dropdown-menu-focus-on-hover';
 
@@ -39,11 +39,10 @@ export class HlmDropdownMenuCheckboxCdk extends CdkMenuItemCheckbox {
   },
 })
 export class HlmDropdownMenuCheckbox {
-  protected readonly _cdkMenuItem = inject(HlmDropdownMenuCheckboxCdk);
-
   public readonly inset = input<boolean, BooleanInput>(false, {
     transform: booleanAttribute,
   });
+  protected readonly _cdkMenuItem = inject(HlmDropdownMenuCheckboxCdk);
 
   constructor() {
     classes(

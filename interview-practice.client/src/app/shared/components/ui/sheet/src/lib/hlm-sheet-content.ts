@@ -40,15 +40,14 @@ import { HlmSheetClose } from './hlm-sheet-close';
   `,
 })
 export class HlmSheetContent {
-  private readonly _stateProvider = injectExposesStateProvider({ host: true });
-  protected readonly _sideProvider = injectExposedSideProvider({ host: true });
-  public readonly state = this._stateProvider.state ?? signal('closed');
-  private readonly _renderer = inject(Renderer2);
-  private readonly _element = inject(ElementRef);
-
   public readonly showCloseButton = input<boolean, BooleanInput>(true, {
     transform: booleanAttribute,
   });
+  protected readonly _sideProvider = injectExposedSideProvider({ host: true });
+  private readonly _stateProvider = injectExposesStateProvider({ host: true });
+  public readonly state = this._stateProvider.state ?? signal('closed');
+  private readonly _renderer = inject(Renderer2);
+  private readonly _element = inject(ElementRef);
 
   constructor() {
     classes(() => [

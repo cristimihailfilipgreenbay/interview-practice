@@ -1,4 +1,4 @@
-import { Directive, input, signal } from '@angular/core';
+import { booleanAttribute, Directive, input, signal } from '@angular/core';
 import { BrnButton } from '@spartan-ng/brain/button';
 import { classes } from '@spartan-ng/helm/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
@@ -48,25 +48,40 @@ export type ButtonVariants = VariantProps<typeof buttonVariants>;
   selector: 'button[hlmBtn], a[hlmBtn]',
   exportAs: 'hlmBtn',
   hostDirectives: [{ directive: BrnButton, inputs: ['disabled'] }],
-  host: { 'data-slot': 'button' },
+  host: {
+    'data-slot': 'button',
+    '[attr.aria-busy]': 'loading() || null',
+    '[attr.data-loading]': 'loading() || null',
+    '(click)': 'onClick($event)',
+  },
 })
 export class HlmButton {
+  /**
+   * Busy state for async actions. Unlike `disabled`, the button keeps focus and its look;
+   * clicks are swallowed so the action can't fire twice. Render the spinner as content.
+   */
+  public readonly loading = input(false, { transform: booleanAttribute });
   private readonly _config = injectBrnButtonConfig();
-
-  private readonly _additionalClasses = signal<ClassValue>('');
-
   public readonly variant = input<ButtonVariants['variant']>(this._config.variant);
-
   public readonly size = input<ButtonVariants['size']>(this._config.size);
+  private readonly _additionalClasses = signal<ClassValue>('');
 
   constructor() {
     classes(() => [
       buttonVariants({ variant: this.variant(), size: this.size() }),
+      'data-loading:cursor-progress',
       this._additionalClasses(),
     ]);
   }
 
   setClass(classes: string): void {
     this._additionalClasses.set(classes);
+  }
+
+  protected onClick(event: Event): void {
+    if (this.loading()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
   }
 }

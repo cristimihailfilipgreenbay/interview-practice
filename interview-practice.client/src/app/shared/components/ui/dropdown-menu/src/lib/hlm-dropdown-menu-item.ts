@@ -23,15 +23,12 @@ import { HlmDropdownMenuFocusOnHover } from './hlm-dropdown-menu-focus-on-hover'
   },
 })
 export class HlmDropdownMenuItem {
-  protected readonly _isButton = inject(HOST_TAG_NAME) === 'button';
-
   public readonly disabled = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
-
   public readonly variant = input<'default' | 'destructive'>('default');
-
   public readonly inset = input<boolean, BooleanInput>(false, {
     transform: booleanAttribute,
   });
+  protected readonly _isButton = inject(HOST_TAG_NAME) === 'button';
 
   constructor() {
     classes(

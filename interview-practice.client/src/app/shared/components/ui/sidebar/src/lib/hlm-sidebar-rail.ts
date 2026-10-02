@@ -13,9 +13,8 @@ import { HlmSidebarService } from './hlm-sidebar.service';
   },
 })
 export class HlmSidebarRail {
-  private readonly _sidebarService = inject(HlmSidebarService);
-
   public readonly ariaLabel = input<string>('Toggle Sidebar', { alias: 'aria-label' });
+  private readonly _sidebarService = inject(HlmSidebarService);
 
   constructor() {
     classes(() => [

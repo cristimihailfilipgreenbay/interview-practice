@@ -9,10 +9,8 @@ import { classes } from '@spartan-ng/helm/utils';
   },
 })
 export class HlmAttachmentTrigger {
-  private readonly _elementRef = inject(ElementRef<HTMLElement>);
-
   public readonly type = input<'button' | 'submit' | 'reset' | null>('button');
-
+  private readonly _elementRef = inject(ElementRef<HTMLElement>);
   protected readonly _hostType = computed(() =>
     this._elementRef.nativeElement.localName === 'button' ? this.type() : null,
   );

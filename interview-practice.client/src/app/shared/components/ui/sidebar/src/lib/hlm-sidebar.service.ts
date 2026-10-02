@@ -23,19 +23,17 @@ export class HlmSidebarService {
   private readonly _document = inject(DOCUMENT);
   private readonly _window = this._document.defaultView;
   private readonly _open = signal<boolean>(this._config.defaultOpen);
-  private readonly _openMobile = signal<boolean>(false);
-  private readonly _isMobile = signal<boolean>(false);
-  private readonly _variant = signal<SidebarVariant>('sidebar');
-  private _mediaQuery: MediaQueryList | null = null;
-
   public readonly open: Signal<boolean> = this._open.asReadonly();
-  public readonly openMobile: Signal<boolean> = this._openMobile.asReadonly();
-  public readonly isMobile: Signal<boolean> = this._isMobile.asReadonly();
-  public readonly variant: Signal<SidebarVariant> = this._variant.asReadonly();
-
   public readonly state = computed<'expanded' | 'collapsed'>(() =>
     this._open() ? 'expanded' : 'collapsed',
   );
+  private readonly _openMobile = signal<boolean>(false);
+  public readonly openMobile: Signal<boolean> = this._openMobile.asReadonly();
+  private readonly _isMobile = signal<boolean>(false);
+  public readonly isMobile: Signal<boolean> = this._isMobile.asReadonly();
+  private readonly _variant = signal<SidebarVariant>('sidebar');
+  public readonly variant: Signal<SidebarVariant> = this._variant.asReadonly();
+  private _mediaQuery: MediaQueryList | null = null;
 
   constructor() {
     const destroyRef = inject(DestroyRef);

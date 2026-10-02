@@ -64,21 +64,19 @@ const sidebarMenuButtonVariants = cva(
   },
 })
 export class HlmSidebarMenuButton {
-  private readonly _config = injectHlmSidebarConfig();
-  private readonly _sidebarService = inject(HlmSidebarService);
-  private readonly _brnTooltip = inject(BrnTooltip);
-
   public readonly variant = input<'default' | 'outline'>('default');
   public readonly size = input<'default' | 'sm' | 'lg'>('default');
   public readonly isActive = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
+  private readonly _config = injectHlmSidebarConfig();
   public readonly closeMobileSidebarOnClick = input<boolean, BooleanInput>(
     this._config.closeMobileSidebarOnMenuButtonClick,
     { transform: booleanAttribute },
   );
-
+  private readonly _sidebarService = inject(HlmSidebarService);
   protected readonly _isTooltipHidden = computed(
     () => this._sidebarService.state() !== 'collapsed' || this._sidebarService.isMobile(),
   );
+  private readonly _brnTooltip = inject(BrnTooltip);
 
   constructor() {
     classes(() => sidebarMenuButtonVariants({ variant: this.variant(), size: this.size() }));

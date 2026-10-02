@@ -20,15 +20,13 @@ import { classes } from '@spartan-ng/helm/utils';
   },
 })
 export class HlmDropdownMenu {
+  public readonly sideOffset = input<number, NumberInput>(1, { transform: numberAttribute });
+  protected readonly _state = signal('open');
   private readonly _host = inject(CdkMenu);
   private readonly _elementRef = inject(ElementRef<HTMLElement>);
   // The trigger provides its configured side; CDK parents this content's injector under the trigger's.
   private readonly _menuSide = inject(MENU_SIDE, { optional: true });
-
-  protected readonly _state = signal('open');
   protected readonly _side = signal<MenuSide>(this._menuSide?.side() ?? 'bottom');
-
-  public readonly sideOffset = input<number, NumberInput>(1, { transform: numberAttribute });
 
   constructor() {
     classes(

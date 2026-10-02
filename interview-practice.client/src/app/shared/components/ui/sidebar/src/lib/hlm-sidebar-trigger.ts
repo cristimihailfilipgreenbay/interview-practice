@@ -25,9 +25,8 @@ import { HlmSidebarService } from './hlm-sidebar.service';
   `,
 })
 export class HlmSidebarTrigger {
-  private readonly _sidebarService = inject(HlmSidebarService);
-
   public readonly srOnlyText = input<string>('Toggle Sidebar');
+  private readonly _sidebarService = inject(HlmSidebarService);
 
   protected _onClick(): void {
     this._sidebarService.toggleSidebar();

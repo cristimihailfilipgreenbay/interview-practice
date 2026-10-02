@@ -9,6 +9,10 @@ import { classes } from '@spartan-ng/helm/utils';
 })
 export class HlmCollapsibleContent {
   constructor() {
-    classes(() => 'data-[state=closed]:hidden');
+    // The brain content exposes its measured height as --brn-collapsible-content-height.
+    classes(
+      () =>
+        'overflow-hidden transition-[height,opacity] duration-300 ease-in-out data-[state=closed]:h-0 data-[state=closed]:opacity-0 data-[state=open]:h-(--brn-collapsible-content-height) data-[state=open]:opacity-100 motion-reduce:transition-none',
+    );
   }
 }

@@ -30,30 +30,16 @@ import { classes } from '@spartan-ng/helm/utils';
 })
 export class HlmFieldError implements OnDestroy {
   private static _id = 0;
-
-  private readonly _field = inject(BrnField, { optional: true });
-  private readonly _a11y = inject(BrnFieldA11yService, { optional: true, host: true });
-
-  private _registeredId?: string | undefined;
-
-  private readonly _hasParentField = !!this._field;
-
   /** The unique ID for the field error. If none is supplied, it will be auto-generated. */
   public readonly id = input<string>(`hlm-field-error-${HlmFieldError._id++}`);
-
   /**
    * The name of the specific validator error key to match (e.g. 'required').
    * When omitted, the error is shown if any validation error is present.
    */
   public readonly validator = input<string>();
-
   /** Forces the error message to be visible regardless of the control's validation state. */
   public readonly forceShow = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
-
-  protected readonly _display = computed(
-    () => !this._hasParentField || this.forceShow() || this._hasError(),
-  );
-
+  private readonly _field = inject(BrnField, { optional: true });
   protected readonly _hasError = computed(() => {
     const errors = this._field?.errors();
     if (!errors) return false;
@@ -65,7 +51,12 @@ export class HlmFieldError implements OnDestroy {
 
     return validator ? validator in errors : Object.keys(errors).length > 0;
   });
-
+  private readonly _a11y = inject(BrnFieldA11yService, { optional: true, host: true });
+  private _registeredId?: string | undefined;
+  private readonly _hasParentField = !!this._field;
+  protected readonly _display = computed(
+    () => !this._hasParentField || this.forceShow() || this._hasError(),
+  );
   private readonly _cleanup: EffectRef | null = this._a11y
     ? effect(() => {
         const a11y = this._a11y;

@@ -16,12 +16,10 @@ import { classes } from '@spartan-ng/helm/utils';
   },
 })
 export class HlmComboboxChips {
-  private readonly _combobox = injectBrnComboboxBase();
-
   public readonly forceInvalid = input<boolean, BooleanInput>(false, {
     transform: booleanAttribute,
   });
-
+  private readonly _combobox = injectBrnComboboxBase();
   protected readonly _spartanInvalid = computed(
     () => this.forceInvalid() || this._combobox.controlState?.()?.spartanInvalid,
   );

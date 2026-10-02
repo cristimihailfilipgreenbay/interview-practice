@@ -18,12 +18,11 @@ import { classes } from '@spartan-ng/helm/utils';
   },
 })
 export class HlmDropdownMenuSub {
+  protected readonly _state = signal('open');
   private readonly _host = inject(CdkMenu);
   private readonly _elementRef = inject(ElementRef<HTMLElement>);
   // The sub-trigger provides its configured side; CDK parents this content's injector under it.
   private readonly _menuSide = inject(MENU_SIDE, { optional: true });
-
-  protected readonly _state = signal('open');
   protected readonly _side = signal<MenuSide>(this._menuSide?.side() ?? 'right');
 
   constructor() {

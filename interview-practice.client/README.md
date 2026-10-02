@@ -36,5 +36,5 @@ why local dev hits real cross-origin CORS while the Docker build doesn't.
 
 ## Where things are documented
 
-This README is just how to run it. What it *does* and why lives in
+This README is just how to run it. What it _does_ and why lives in
 [`../docs/`](../docs/) — start with [`../docs/overview.md`](../docs/overview.md).

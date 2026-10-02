@@ -54,15 +54,12 @@ export class HlmComboboxTrigger {
   public readonly userClass = input<ClassValue>('', {
     alias: 'class',
   });
-  protected readonly _computedClass = computed(() =>
-    hlm('data-placeholder:text-muted-foreground', this.userClass()),
-  );
-
   public readonly buttonId = input<string>(`hlm-combobox-trigger-${HlmComboboxTrigger._id++}`);
-
   public readonly variant = input<ButtonVariants['variant']>('outline');
-
   public readonly forceInvalid = input<boolean, BooleanInput>(false, {
     transform: booleanAttribute,
   });
+  protected readonly _computedClass = computed(() =>
+    hlm('data-placeholder:text-muted-foreground', this.userClass()),
+  );
 }

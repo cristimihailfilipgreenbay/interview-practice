@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { booleanAttribute, ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { BrnSlider, BrnSliderImports, injectBrnSlider } from '@spartan-ng/brain/slider';
 import { classes } from '@spartan-ng/helm/utils';
 
@@ -42,16 +42,28 @@ import { classes } from '@spartan-ng/helm/utils';
         class="bg-muted rounded-full data-horizontal:h-1.5 data-horizontal:w-full data-vertical:h-full data-vertical:w-1.5 relative grow overflow-hidden"
       >
         <div
-          class="bg-primary absolute select-none data-draggable-range:cursor-move data-horizontal:h-full data-vertical:w-full"
+          class="bg-primary/40 absolute select-none data-draggable-range:cursor-move data-horizontal:h-full data-vertical:w-full"
           brnSliderRange
         ></div>
       </div>
 
       @for (i of _slider.thumbIndexes(); track i) {
         <span
-          class="border-primary ring-ring/50 size-4 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden absolute block shrink-0 select-none after:absolute after:-inset-2"
+          class="group/thumb cursor-pointer border-primary ring-ring/50 w-5.5 h-3.5 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden absolute block shrink-0 select-none after:absolute after:-inset-2"
           brnSliderThumb
-        ></span>
+        >
+          @if (valueTooltip()) {
+            <span
+              class="bg-foreground text-background pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded-md px-2 py-1 text-xs whitespace-nowrap opacity-0 transition-opacity group-hover/thumb:opacity-100 group-focus/thumb:opacity-100 group-active/thumb:opacity-100"
+              aria-hidden="true"
+            >
+              {{ _slider.normalizedValue()[i] }}
+              <span
+                class="bg-foreground absolute top-full left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px]"
+              ></span>
+            </span>
+          }
+        </span>
       }
     </div>
 
@@ -73,6 +85,9 @@ import { classes } from '@spartan-ng/helm/utils';
   `,
 })
 export class HlmSlider {
+  /** Show the thumb's current value in a label above it on hover, focus and while dragging. */
+  public readonly valueTooltip = input(false, { transform: booleanAttribute });
+
   protected readonly _slider = injectBrnSlider();
 
   constructor() {

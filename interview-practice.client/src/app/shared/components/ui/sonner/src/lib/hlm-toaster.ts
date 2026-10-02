@@ -1,8 +1,8 @@
 import type { BooleanInput, NumberInput } from '@angular/cdk/coercion';
 import {
+  booleanAttribute,
   ChangeDetectionStrategy,
   Component,
-  booleanAttribute,
   computed,
   input,
   numberAttribute,
@@ -112,17 +112,6 @@ export class HlmToaster {
     transform: booleanAttribute,
   });
   public readonly toastOptions = input<ToasterProps['toastOptions']>({});
-
-  protected readonly _computedToastOptions = computed(() => {
-    const options = this.toastOptions();
-    return {
-      ...options,
-      classes: {
-        ...options?.classes,
-        toast: hlm('rounded-2xl!', options?.classes?.toast),
-      },
-    };
-  });
   public readonly offset = input<ToasterProps['offset']>(null);
   public readonly userClass = input<ClassValue>('', { alias: 'class' });
   public readonly userStyle = input<Record<string, string>>(
@@ -134,6 +123,15 @@ export class HlmToaster {
     },
     { alias: 'style' },
   );
-
+  protected readonly _computedToastOptions = computed(() => {
+    const options = this.toastOptions();
+    return {
+      ...options,
+      classes: {
+        ...options?.classes,
+        toast: hlm('rounded-2xl!', options?.classes?.toast),
+      },
+    };
+  });
   protected readonly _computedClass = computed(() => hlm('toaster group', this.userClass()));
 }

@@ -31,9 +31,8 @@ import { HlmSelectScrollUp } from './hlm-select-scroll-up';
   `,
 })
 export class HlmSelectContent {
-  protected readonly _computedListboxClasses = computed(() => hlm('flex flex-col'));
-
   public readonly showScroll = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
+  protected readonly _computedListboxClasses = computed(() => hlm('flex flex-col'));
 
   constructor() {
     classes(

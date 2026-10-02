@@ -15,16 +15,14 @@ import { injectHlmSidebarConfig } from './hlm-sidebar.token';
   },
 })
 export class HlmSidebarMenuSubButton {
+  public readonly size = input<'sm' | 'md'>('md');
+  public readonly isActive = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
   private readonly _sidebarService = inject(HlmSidebarService);
   private readonly _config = injectHlmSidebarConfig();
-
   public readonly closeMobileSidebarOnClick = input<boolean, BooleanInput>(
     this._config.closeMobileSidebarOnMenuButtonClick,
     { transform: booleanAttribute },
   );
-
-  public readonly size = input<'sm' | 'md'>('md');
-  public readonly isActive = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
 
   constructor() {
     classes(

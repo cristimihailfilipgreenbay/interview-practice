@@ -14,7 +14,7 @@ import {
   PLATFORM_ID,
   Renderer2,
 } from '@angular/core';
-import { BrnRadio, BrnRadioGroup, type BrnRadioChange } from '@spartan-ng/brain/radio-group';
+import { BrnRadio, type BrnRadioChange, BrnRadioGroup } from '@spartan-ng/brain/radio-group';
 import { hlm } from '@spartan-ng/helm/utils';
 import type { ClassValue } from 'clsx';
 
@@ -52,25 +52,35 @@ import type { ClassValue } from 'clsx';
   `,
 })
 export class HlmRadio<T = unknown> {
-  private readonly _document = inject(DOCUMENT);
-  private readonly _renderer = inject(Renderer2);
-  private readonly _elementRef = inject(ElementRef);
-  private readonly _isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
-  private readonly _radioGroup = inject(BrnRadioGroup, { optional: true });
-
-  protected readonly _ariaInvalid = computed(() => this._radioGroup?.controlState?.()?.invalid);
-
-  protected readonly _touched = computed(() => this._radioGroup?.controlState?.()?.touched);
-  protected readonly _dirty = computed(() => this._radioGroup?.controlState?.()?.dirty);
-  protected readonly _groupSpartanInvalid = computed(
-    () => this._radioGroup?.controlState?.()?.spartanInvalid,
-  );
-
+  public readonly userClass = input<ClassValue>('', { alias: 'class' });
+  /** Used to set the id on the underlying brn element. */
+  public readonly inputId = input<string | undefined>(undefined);
+  /** Used to set the aria-label attribute on the underlying brn element. */
+  public readonly ariaLabel = input<string | undefined>(undefined, { alias: 'aria-label' });
+  /** Used to set the aria-labelledby attribute on the underlying brn element. */
+  public readonly ariaLabelledby = input<string | undefined>(undefined, {
+    alias: 'aria-labelledby',
+  });
+  /** Used to set the aria-describedby attribute on the underlying brn element. */
+  public readonly ariaDescribedby = input<string | undefined>(undefined, {
+    alias: 'aria-describedby',
+  });
+  /**
+   * The value this radio button represents.
+   */
+  public readonly value = input.required<T>();
+  /** Whether the checkbox is required. */
+  public readonly required = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
+  /** Whether the checkbox is disabled. */
+  public readonly disabled = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
+  /**
+   * Event emitted when the checked state of this radio button changes.
+   */
+  // eslint-disable-next-line @angular-eslint/no-output-native
+  public readonly change = output<BrnRadioChange<T>>();
   protected readonly _errorStateClass = computed(() =>
     this._groupSpartanInvalid() ? 'text-destructive' : '',
   );
-
-  public readonly userClass = input<ClassValue>('', { alias: 'class' });
   protected readonly _computedClass = computed(() =>
     hlm(
       'group relative flex items-center gap-x-3',
@@ -79,39 +89,17 @@ export class HlmRadio<T = unknown> {
       this._errorStateClass(),
     ),
   );
-
-  /** Used to set the id on the underlying brn element. */
-  public readonly inputId = input<string | undefined>(undefined);
-
-  /** Used to set the aria-label attribute on the underlying brn element. */
-  public readonly ariaLabel = input<string | undefined>(undefined, { alias: 'aria-label' });
-
-  /** Used to set the aria-labelledby attribute on the underlying brn element. */
-  public readonly ariaLabelledby = input<string | undefined>(undefined, {
-    alias: 'aria-labelledby',
-  });
-
-  /** Used to set the aria-describedby attribute on the underlying brn element. */
-  public readonly ariaDescribedby = input<string | undefined>(undefined, {
-    alias: 'aria-describedby',
-  });
-
-  /**
-   * The value this radio button represents.
-   */
-  public readonly value = input.required<T>();
-
-  /** Whether the checkbox is required. */
-  public readonly required = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
-
-  /** Whether the checkbox is disabled. */
-  public readonly disabled = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
-
-  /**
-   * Event emitted when the checked state of this radio button changes.
-   */
-  // eslint-disable-next-line @angular-eslint/no-output-native
-  public readonly change = output<BrnRadioChange<T>>();
+  private readonly _document = inject(DOCUMENT);
+  private readonly _renderer = inject(Renderer2);
+  private readonly _elementRef = inject(ElementRef);
+  private readonly _isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly _radioGroup = inject(BrnRadioGroup, { optional: true });
+  protected readonly _ariaInvalid = computed(() => this._radioGroup?.controlState?.()?.invalid);
+  protected readonly _touched = computed(() => this._radioGroup?.controlState?.()?.touched);
+  protected readonly _dirty = computed(() => this._radioGroup?.controlState?.()?.dirty);
+  protected readonly _groupSpartanInvalid = computed(
+    () => this._radioGroup?.controlState?.()?.spartanInvalid,
+  );
 
   constructor() {
     effect(() => {
