@@ -15,8 +15,8 @@ npm test                                    # ng test: Vitest via @angular/build
 npx ng test --watch=false                   # single run
 npx ng test --include src/app/app.spec.ts   # run one spec file
 npm run lint                                # ng lint: eslint over src/**/*.ts and src/**/*.html
-npx prettier --write .                      # format
-npx prettier --check .                      # check formatting without writing
+npm run format                              # prettier --write .
+npm run format:check                        # prettier --check . (no writes)
 ```
 
 No e2e framework is set up.
