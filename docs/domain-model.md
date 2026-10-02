@@ -23,8 +23,10 @@ A reusable piece of candidate-supplied text: a CV, a cover letter, or a job desc
   discarded after parsing — see
   [ADR 0007](./adr/0007-original-uploaded-file-kept-for-download.md). Same storage
   mechanism as `Interview.persona_image_path`.
-- `saved`: boolean, default determined by the candidate's "save this for later?" answer at
-  upload time. A Document row is *always* created on upload (an Interview's FK needs
+- `saved`: boolean, `true` when a CV or cover letter is uploaded and `false` for a job
+  description (a job description is usually specific to one role). The candidate can toggle
+  "save for later" right after the upload, which updates it (`PATCH /api/documents/:id`). A
+  Document row is *always* created on upload (an Interview's FK needs
   something to point at regardless), but only `saved = true` Documents appear in the
   select-existing list or the Preferences Documents tab — an unsaved one is effectively a
   one-off, used for just that Interview. Because the file is uploaded when it's picked,
