@@ -33,9 +33,8 @@ developer-facing preferences area kept apart from the candidate experience.
 1. As a candidate, I want to create a new mock interview by specifying job title,
    seniority, and difficulty, so that the interview questions match the role I'm preparing
    for.
-2. As a candidate, I want the domain to be auto-suggested from my job title, so that I
-   don't have to categorize my own role, while still being able to correct it if it's
-   wrong.
+2. As a candidate, I want the role's domain to be inferred from my job title and documents,
+   so that I don't have to categorize my own role.
 3. As a candidate, I want to choose an interview type (technical or behavioral), so that I
    can focus my practice on the area I need most.
 4. As a candidate, I want to choose who is interviewing me (recruiter, technical screener,
@@ -161,7 +160,7 @@ developer-facing preferences area kept apart from the candidate experience.
   `JobApplication` (company_name, job_title, document links, `progress_score` 1-5 +
   `progress_summary` narrative, cascade-deletes its Interviews per
   [ADR 0008](./adr/0008-jobapplication-delete-cascades-to-interviews.md)), `Interview`
-  (job_title, company_name, domain, seniority, difficulty→tone/question-count cascade,
+  (job_title, company_name, inferred domain, seniority, difficulty→tone/question-count cascade,
   interview_type, interviewer_role→tone/interview_type cascade across the 4 roles,
   target_question_count, status, `last_activity_at` + 30-minute staleness detection per
   [ADR 0006](./adr/0006-lazy-staleness-detection-not-a-background-job.md), persona_name,

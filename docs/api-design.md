@@ -53,7 +53,6 @@ Create Interview submission. Request:
 {
   "jobTitle": "string",
   "companyName": "string?",
-  "domain": "string",
   "seniority": "string",
   "difficulty": "easy" | "medium" | "hard",
   "targetQuestionCount": "integer?",  // 1–30; overrides difficulty's cascaded default

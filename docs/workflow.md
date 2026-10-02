@@ -13,13 +13,11 @@ step is implemented.
   `company_name`/`job_title`/documents below from it, so they don't need re-entering per
   stage; a brand-new Application can also be created inline by just filling those fields
   as normal.
-- **Job title** — free text; seeds an auto-suggested `domain`.
+- **Job title** — free text; phase 1 also infers the role's domain from it (and the JD/CV).
 - **Company name** — free text, optional, independent of the job description upload below.
   Without it, the interviewer would have no company identity to reference whenever the JD
   is skipped — real interviews near-universally test whether the candidate researched the
   company ("what do you know about us", "why do you want to work here").
-- **Domain** — auto-suggested from job title (e.g. "Software Engineer" → "Software"), but
-  always editable, since the suggestion can be a false positive (e.g. "IT Technician").
 - **Seniority** — e.g. junior / mid / senior.
 - **Difficulty** — easy / medium / hard. A preset that seeds `target_question_count`,
   `tone`, and question complexity — each independently editable afterward, and `difficulty`

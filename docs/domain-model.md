@@ -84,9 +84,9 @@ One mock interview session, from creation through evaluation.
   generation (phase 2), the live conversation (phase 3), and — directly matching the
   assignment's own "questions to ask the interviewer" starter idea, which explicitly wants
   a company name — the ask-back suggestions (phase 4)
-- `domain`: auto-suggested from `job_title` at creation (e.g. "Software Engineer" →
-  "Software"), but always user-editable — the suggestion can be a false positive (e.g. "IT
-  Technician" isn't obviously "Software")
+- `domain`: inferred by phase 1 (JD/CV analysis) at creation from `job_title` and the JD/CV
+  text (e.g. "Software Engineer" → "Software"); not a form field, so the candidate never
+  has to categorize their own role. Stored on the Interview and fed to the later prompts
 - `seniority`: e.g. junior / mid / senior
 - `difficulty`: easy | medium | hard — a *preset* that seeds `target_question_count`, `tone`,
   and question complexity. Each of those remains independently editable after the preset is

@@ -128,7 +128,8 @@ All five run on **`gpt-5-mini`** by default (selectable among the allowed OpenRo
 chat models via Preferences), using 5 deliberately distinct techniques:
 
 1. **JD/CV analysis** (runs on Create Interview submit) — extracts skills, likely topics,
-   and a domain suggestion from the job description and/or CV text. Technique: **zero-shot**
+   and the role's domain (stored as `Interview.domain`) from the job title and the job
+   description and/or CV text. Technique: **zero-shot**
    extraction with a structured JSON output contract. Plain context-injection, not RAG —
    see [ADR 0004](./adr/0004-job-description-context-is-not-rag.md).
 2. **Question-plan & persona generation** — produces the interviewer persona (name, job

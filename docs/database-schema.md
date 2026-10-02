@@ -57,7 +57,7 @@ Deleting a row here cascades (`ON DELETE CASCADE`) to every `interviews` row wit
 | `job_application_id` | `uuid`, nullable, FK → `job_applications.id` | nullable — a standalone Interview needs no Application |
 | `job_title` | `text` | |
 | `company_name` | `text`, nullable | optional, independent of the job description Document; lets persona/conversation/ask-back suggestions reference a real company even when no JD is uploaded |
-| `domain` | `text` | auto-suggested, user-editable |
+| `domain` | `text` | inferred by phase 1 (JD/CV analysis) at creation; never entered by the candidate |
 | `seniority` | `text` | |
 | `difficulty` | `enum(easy, medium, hard)` | |
 | `tone` | `text` | e.g. strict/neutral/friendly; extensible, so plain text rather than a fixed enum |
