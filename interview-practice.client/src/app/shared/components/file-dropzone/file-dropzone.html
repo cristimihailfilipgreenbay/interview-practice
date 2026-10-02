@@ -1,0 +1,19 @@
+<input #fileInput (change)="onChosen($event)" [accept]="accept()" class="hidden" type="file" />
+<button
+  (click)="fileInput.click()"
+  (dragleave)="onDragLeave()"
+  (dragover)="onDragOver($event)"
+  (drop)="onDrop($event)"
+  [attr.data-drag]="dragState()"
+  [disabled]="busy()"
+  class="flex w-full cursor-pointer flex-col items-center gap-1 rounded-lg border border-dashed border-border px-3 py-4 text-sm text-muted-foreground transition-colors outline-none hover:border-primary/40 hover:bg-primary/10 hover:text-primary-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-progress disabled:opacity-50 data-[drag=accept]:border-success data-[drag=accept]:bg-success/20 data-[drag=accept]:text-success data-[drag=reject]:border-destructive data-[drag=reject]:bg-destructive/20 data-[drag=reject]:text-destructive [&>*]:pointer-events-none"
+  type="button"
+>
+  @if (busy()) {
+    <hlm-spinner [aria-label]="busyLabel()" />
+    {{ busyLabel() }}
+  } @else {
+    <ng-icon name="lucideCloudUpload" size="1.25rem" />
+    <ng-content />
+  }
+</button>
