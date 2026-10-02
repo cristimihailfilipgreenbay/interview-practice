@@ -89,11 +89,12 @@ One mock interview session, from creation through evaluation.
   has to categorize their own role. Stored on the Interview and fed to the later prompts
 - `seniority`: e.g. junior / mid / senior
 - `difficulty`: easy | medium | hard — a *preset* that seeds `target_question_count`, `tone`,
-  and question complexity. Each of those remains independently editable after the preset is
+  `interview_type`, `response_style`, `coaching_helpers_enabled` and question complexity (the client applies the first five). Each of those remains independently editable after the preset is
   applied, and `difficulty` itself is still passed to the question-plan prompt as its own
   signal (it isn't just a UI shortcut that gets discarded once other fields are tweaked)
-- `tone`: strict | neutral | friendly | ... (extensible) — the interviewer persona's style;
-  defaults from `difficulty`, independently overridable
+- `tone`: strict | neutral | friendly — the interviewer persona's style; a fixed set in the
+  client form, stored as plain text so adding one later needs no migration; defaults from
+  `difficulty` and `interviewer_role` (last pick wins), independently overridable
 - `interview_type`: `technical` | `behavioral` (initial set, plain text like `tone` for
   future extensibility, e.g. a later "mixed") — skews the question plan and which half of
   `evaluation_criteria` carries more weight at evaluation time
@@ -120,7 +121,9 @@ One mock interview session, from creation through evaluation.
   `difficulty` seeds `tone`/question count elsewhere: changing `interviewer_role` re-applies
   its row below to `interview_type` and `tone`, even overwriting a prior manual override on
   those two fields — but both remain independently editable again afterward, same as
-  `difficulty`'s cascade behavior:
+  `difficulty`'s cascade behavior. `difficulty` and `interviewer_role` both seed `tone` and
+  `interview_type`, so the last pick wins. The cascade runs in the client form; the API
+  receives the final values.
 
   | `interviewer_role` | default `interview_type` | default `tone` |
   |---|---|---|

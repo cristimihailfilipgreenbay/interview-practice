@@ -55,12 +55,12 @@ Create Interview submission. Request:
   "companyName": "string?",
   "seniority": "string",
   "difficulty": "easy" | "medium" | "hard",
-  "targetQuestionCount": "integer?",  // 1–30; overrides difficulty's cascaded default
-  "tone": "string?",                  // overrides difficulty's cascaded default
-  "interviewType": "string?",         // overrides interviewerRole's cascaded default
+  "targetQuestionCount": "integer",   // 1–30; the client seeds it from difficulty, then sends the final value
+  "tone": "strict" | "neutral" | "friendly",  // the client seeds it from difficulty / interviewerRole (last pick wins), then sends the final value
+  "interviewType": "string",          // the client seeds it from difficulty / interviewerRole (last pick wins), then sends the final value
   "interviewerRole": "recruiter" | "technical_screener" | "hr" | "hiring_manager",
-  "responseStyle": "concise" | "detailed",  // default "concise"
-  "coachingHelpersEnabled": false,
+  "responseStyle": "concise" | "detailed",  // the client seeds it from difficulty (hard → detailed), then sends the final value
+  "coachingHelpersEnabled": false,  // the client seeds it from difficulty (on for easy), then sends the final value
   "jobDescriptionId": "uuid" | null,
   "cvId": "uuid" | null,
   "coverLetterId": "uuid" | null,
@@ -143,7 +143,9 @@ regardless of `save` (see `domain-model.md`'s `saved` field) — parses the uplo
 server-side into `raw_text`, stores the original on local disk (`file_path`, relative to
 the Flask `instance/` folder). `name` defaults to the uploaded filename. Called as soon as
 the candidate picks a file in Create Interview (or uploads from the Preferences Documents
-tab), with `save` set from the "save this for later?" answer.
+tab). Create Interview uploads with `save: true` for a CV or cover letter and `save: false` for a
+job description; the "save for later" checkbox, shown after the upload, changes it
+through `PATCH`.
 
 **PDF only, max `MAX_UPLOAD_MB` (default 10 MB).** `400` for a missing file, a non-`.pdf` filename, or invalid
 fields; `413 FILE_TOO_LARGE` over the limit; `422 UNPROCESSABLE_FILE` if the file isn't a
@@ -157,8 +159,10 @@ Binary response (the original uploaded file), `Content-Disposition` filename fro
 
 ### `PATCH /api/documents/:id`
 
-`{"name": "string"}` (1–200 characters after trimming) — rename, from the Preferences
-Documents tab. Response `200`: the updated Document.
+`{"name"?: "string", "saved"?: boolean}` — at least one; `name` is 1–200 characters after
+trimming. Rename comes from the Preferences Documents tab; `saved` from the "save for later"
+checkbox in Create Interview. `400` if neither is given. Response `200`: the updated
+Document.
 
 ### `DELETE /api/documents/:id`
 
@@ -170,8 +174,12 @@ that referenced the Document are kept and just lose the link (`ON DELETE SET NUL
 
 ### `GET /api/applications`
 
-List (id, `companyName`, `jobTitle`, and each stage's `interviewerRole`/`status`) — backs
-the sidebar's grouped history.
+List, newest first: `id`, `companyName`, `jobTitle`, the optional documents
+`jobDescription`/`cv`/`coverLetter` — each `{id, name}` or `null`, so Create Interview can
+pre-fill a new stage and show an attached document by name even when it isn't `saved` — and
+`interviews` — each stage's `id`, `interviewerRole` and `status`, oldest first. Backs the
+sidebar's grouped history and the application select in Create Interview. Response `200`,
+an empty array when there are none.
 
 ### `GET /api/applications/:id`
 

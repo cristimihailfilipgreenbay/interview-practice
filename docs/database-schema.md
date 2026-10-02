@@ -25,7 +25,7 @@ This is a single-implicit-user prototype (see [ADR 0002](./adr/0002-single-user-
 | `raw_text` | `text` | extracted content, what the LLM phases read |
 | `source_filename` | `text` | original uploaded filename; always present, uploads are the only ingestion path |
 | `file_path` | `text` | local-disk path, stored *relative to* the Flask app's `instance/` folder (e.g. `uploads/documents/<uuid>.pdf`), to the original uploaded file, so it can be downloaded back exactly as uploaded — same mechanism as `interviews.persona_image_path` |
-| `saved` | `boolean` | default from the candidate's "save this for later?" choice; a row always exists regardless (an Interview's FK needs something to point at), only `saved = true` rows are offered in the select-existing list |
+| `saved` | `boolean` | `true` on upload for a CV or cover letter, `false` for a job description; changed by the candidate's "save for later" checkbox; a row always exists regardless (an Interview's FK needs something to point at), only `saved = true` rows are offered in the select-existing list |
 | `created_at` | `timestamptz` | default now() |
 
 ## `job_applications`
@@ -60,7 +60,7 @@ Deleting a row here cascades (`ON DELETE CASCADE`) to every `interviews` row wit
 | `domain` | `text` | inferred by phase 1 (JD/CV analysis) at creation; never entered by the candidate |
 | `seniority` | `text` | |
 | `difficulty` | `enum(easy, medium, hard)` | |
-| `tone` | `text` | e.g. strict/neutral/friendly; extensible, so plain text rather than a fixed enum |
+| `tone` | `text` | strict / neutral / friendly (a fixed set in the client form); plain text rather than a DB enum so adding a tone needs no migration |
 | `interview_type` | `text` | e.g. technical/behavioral; plain text for future extensibility (e.g. "mixed") |
 | `interviewer_role` | `text` | e.g. recruiter/hr/hiring_manager; plain text, same extensibility reasoning as `tone` |
 | `target_question_count` | `integer` | soft cap, seeded by difficulty; 1–30 (`CHECK`) |

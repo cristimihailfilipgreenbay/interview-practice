@@ -20,7 +20,7 @@ step is implemented.
   company ("what do you know about us", "why do you want to work here").
 - **Seniority** — e.g. junior / mid / senior.
 - **Difficulty** — easy / medium / hard. A preset that seeds `target_question_count`,
-  `tone`, and question complexity — each independently editable afterward, and `difficulty`
+  `tone`, `interview_type`, `response_style`, `coaching_helpers_enabled` (on for easy only) and question complexity — each independently editable afterward, and `difficulty`
   itself is still passed to the question-plan prompt as its own signal, not discarded once
   other fields are tweaked.
 - **Response style** — concise / detailed. Shapes the live interviewer's phrasing and the
