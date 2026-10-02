@@ -53,7 +53,8 @@ header is also the click target into the `/applications/:id` Application Overvie
 - `company_name`: free text
 - `job_title`: free text
 - `job_description_document_id`: optional FK → Document (`type = job_description`)
-- `cv_document_id`: optional FK → Document (`type = cv` or `cover_letter`)
+- `cv_document_id`: optional FK → Document (`type = cv`)
+- `cover_letter_document_id`: optional FK → Document (`type = cover_letter`)
 - `progress_score`: nullable integer, 1-5 — an aggregate performance-trend rating across
   this Application's completed Interview stages, same scale as
   `InterviewerReview.score_breakdown` for consistency. Generated together with, and always
@@ -148,7 +149,8 @@ One mock interview session, from creation through evaluation.
   app's `instance/` folder (see `architecture.md` — generated once at creation, stored, not
   regenerated)
 - `job_description_document_id`: optional FK → Document (`type = job_description`)
-- `cv_document_id`: optional FK → Document (`type = cv` or `cover_letter`)
+- `cv_document_id`: optional FK → Document (`type = cv`)
+- `cover_letter_document_id`: optional FK → Document (`type = cover_letter`)
 - `coaching_helpers_enabled`: boolean, set by the candidate at creation, default `false` — whether
   Q&A-phase questions come with a coaching-hint card (see `architecture.md`)
 - `response_style`: `concise` | `detailed`, default `concise` — affects the live
@@ -232,9 +234,11 @@ same way it would read as one to a real interviewer.
 ```
 Document 1──0..* JobApplication   (as job_description_document_id)
 Document 1──0..* JobApplication   (as cv_document_id)
+Document 1──0..* JobApplication   (as cover_letter_document_id)
 JobApplication 1──0..* Interview
 Document 1──0..* Interview   (as job_description_document_id)
 Document 1──0..* Interview   (as cv_document_id)
+Document 1──0..* Interview   (as cover_letter_document_id)
 Interview 1──1..* Message
 Interview 1──0..1 Evaluation
 Interview 1──0..1 InterviewerReview

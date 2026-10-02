@@ -48,7 +48,7 @@ developer-facing preferences area kept apart from the candidate experience.
    ask me company-specific questions even if I don't upload a full job description.
 7. As a candidate, I want to upload or select a previously-saved job description, so that
    the interview questions are grounded in the actual role I'm applying for.
-8. As a candidate, I want to upload or select a previously-saved CV/cover letter, so that
+8. As a candidate, I want to upload or select a previously-saved CV and, separately, a cover letter, so that
    the interviewer and coaching hints can reference my real experience.
 9. As a candidate, I want to be asked whether to save an uploaded document for future
    reuse, so that I don't have to re-upload the same CV every time.

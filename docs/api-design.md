@@ -62,14 +62,15 @@ Create Interview submission. Request:
   "interviewerRole": "recruiter" | "technical_screener" | "hr" | "hiring_manager",
   "responseStyle": "concise" | "detailed",  // default "concise"
   "coachingHelpersEnabled": false,
-  "jobDescription": { "documentId": "uuid" } | null,
-  "cv": { "documentId": "uuid" } | null,
+  "jobDescriptionId": "uuid" | null,
+  "cvId": "uuid" | null,
+  "coverLetterId": "uuid" | null,
   "jobApplication": { "id": "uuid" } | { "createNew": true } | null,  // null = standalone
   "phaseSettingsOverride": { /* see database-schema.md, camelCased — optional, includes interviewerReview */ }
 }
 ```
 
-- `jobDescription`/`cv` — always a reference to an existing `Document`, never an inline
+- `jobDescriptionId`/`cvId`/`coverLetterId` — always the id of an existing `Document`, never an inline
   file: this request is plain JSON. A new file is uploaded earlier, the moment the
   candidate picks it, via `POST /api/documents` below, and the returned `id` goes here —
   see [ADR 0011](./adr/0011-documents-are-uploaded-before-the-interview-is-created.md).

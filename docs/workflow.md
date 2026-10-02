@@ -41,8 +41,8 @@ step is implemented.
   happens immediately when the file is picked (parsed server-side, so a bad PDF is
   reported right there), and prompts "save this for later?"; the form then holds only the
   returned Document id. Optional.
-- **CV / cover letter** — same select-existing-or-upload-new-with-save-prompt pattern as
-  job description. Optional.
+- **CV** and **cover letter** — two separate fields, each with the same
+  select-existing-or-upload-new-with-save-prompt pattern as job description. Both optional.
 - **Interview helpers** toggle — boolean, default `false`. When on, each Q&A-phase question
   comes with a coaching-hint card grounded in the CV/cover letter where a real match
   exists, falling back to a generic hint when there's no document or no grounded match —

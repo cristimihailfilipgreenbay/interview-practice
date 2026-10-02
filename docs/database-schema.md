@@ -40,6 +40,7 @@ Groups multiple `interviews` rows as stages of the same real-world hiring pipeli
 | `job_title` | `text` | |
 | `job_description_document_id` | `uuid`, nullable, FK → `documents.id` | |
 | `cv_document_id` | `uuid`, nullable, FK → `documents.id` | |
+| `cover_letter_document_id` | `uuid`, nullable, FK → `documents.id` | |
 | `progress_score` | `integer`, nullable | 1-5 aggregate performance-trend rating; same scale as `interviewer_reviews.score_breakdown` |
 | `progress_summary` | `text`, nullable | narrative accompanying `progress_score`; both regenerated together once 2+ stages have an Evaluation — see domain-model.md |
 | `created_at` | `timestamptz` | default now() |
@@ -70,6 +71,7 @@ Deleting a row here cascades (`ON DELETE CASCADE`) to every `interviews` row wit
 | `persona_image_path` | `text` | local-disk path, under the Flask app's `instance/` folder |
 | `job_description_document_id` | `uuid`, nullable, FK → `documents.id` | |
 | `cv_document_id` | `uuid`, nullable, FK → `documents.id` | |
+| `cover_letter_document_id` | `uuid`, nullable, FK → `documents.id` | |
 | `coaching_helpers_enabled` | `boolean` | set by candidate at creation; default `false` |
 | `response_style` | `enum(concise, detailed)` | default `concise`; affects phase 3 phrasing and phase 5 write-up length |
 | `evaluation_criteria` | `jsonb` | `{technical: string[], behavioral: string[]}` — see domain-model.md |
@@ -124,11 +126,13 @@ Dev-facing "LLM-as-judge" assessment of the AI interviewer's own conduct, distin
 
 - `documents.id` ← `job_applications.job_description_document_id` (nullable)
 - `documents.id` ← `job_applications.cv_document_id` (nullable)
+- `documents.id` ← `job_applications.cover_letter_document_id` (nullable)
 - `job_applications.id` ← `interviews.job_application_id` (nullable — one application, many
   stage interviews)
 - `documents.id` ← `interviews.job_description_document_id` (nullable, many interviews can
   reference the same saved job description)
 - `documents.id` ← `interviews.cv_document_id` (nullable, same pattern)
+- `documents.id` ← `interviews.cover_letter_document_id` (nullable, same pattern)
 - `interviews.id` ← `messages.interview_id` (one interview, many messages)
 - `interviews.id` ← `evaluations.interview_id` (one interview, at most one evaluation)
 - `interviews.id` ← `interviewer_reviews.interview_id` (one interview, at most one
@@ -140,12 +144,13 @@ Dev-facing "LLM-as-judge" assessment of the AI interviewer's own conduct, distin
   `interviewer_reviews` `.interview_id` — deleting a `job_applications` row removes its
   interviews and everything under them (ADR 0008).
 - **`ON DELETE SET NULL`**: every FK to `documents` (`job_applications` and `interviews`,
-  both `job_description_document_id` and `cv_document_id`). Deleting a Document leaves the
+  each of `job_description_document_id`, `cv_document_id` and
+  `cover_letter_document_id`). Deleting a Document leaves the
   interviews and applications that referenced it in place, just without the link. The
   columns are nullable already; blocking the delete instead was the alternative.
-- **Indexes**: Postgres doesn't index foreign keys automatically, so the five FK columns
-  that aren't covered by another index are indexed (`interviews.job_application_id`, both
-  document FKs on `interviews`, both on `job_applications`). `evaluations.interview_id` and
+- **Indexes**: Postgres doesn't index foreign keys automatically, so the seven FK columns
+  that aren't covered by another index are indexed (`interviews.job_application_id`, all
+  three document FKs on `interviews`, all three on `job_applications`). `evaluations.interview_id` and
   `interviewer_reviews.interview_id` are covered by their unique constraint, and `messages`
   by the `(interview_id, sequence)` index.
 
