@@ -45,6 +45,7 @@ class JobApplication(Base):
     # Deleting an application deletes its interviews (ADR 0008)
     interviews: Mapped[list[Interview]] = relationship(
         back_populates="job_application",
+        order_by="Interview.created_at",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
