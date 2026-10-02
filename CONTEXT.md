@@ -12,7 +12,17 @@ fields, types, and relationships.
 **JobApplication**:
 The real-world hiring pipeline for one company and role, grouping multiple Interviews as
 its stages.
-_Avoid_: application (bare), job, pipeline
+_Avoid_: application (bare) in prose and identifiers, job, pipeline
+
+The short form "application" is fine where brevity is the convention: URLs (`/api/applications`,
+`/applications/:id`) and user-facing copy (the "Application" section in Create Interview). Code
+and docs that name the entity itself use **JobApplication**.
+
+**ApplicationSummary**:
+The trimmed view of a JobApplication returned by `GET /api/applications`: its id, company and
+job title, its attached documents (id and name) and its stages. Not the entity itself, which
+also holds the progress score and narrative.
+_Avoid_: application summary as a name for the JobApplication itself
 
 **Interview**:
 One mock interview session representing a single stage of a hiring pipeline, optionally
