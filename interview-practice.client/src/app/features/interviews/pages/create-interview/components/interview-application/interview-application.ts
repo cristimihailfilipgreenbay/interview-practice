@@ -8,7 +8,7 @@ import { HlmCollapsibleImports } from '@spartan-ng/helm/collapsible';
 import { HlmFieldImports } from '@spartan-ng/helm/field';
 import { HlmRadioGroupImports } from '@spartan-ng/helm/radio-group';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
-import { Application } from '@app/features/applications/models/application';
+import { ApplicationSummary } from '@app/features/applications/models/application-summary';
 import { ApplicationsApi } from '@app/features/applications/services/applications-api';
 import { CreateInterviewModel } from '@app/features/interviews/pages/create-interview/models/create-interview.schema';
 
@@ -30,10 +30,10 @@ import { CreateInterviewModel } from '@app/features/interviews/pages/create-inte
 export class InterviewApplication {
   readonly interviewForm = input.required<FieldTree<CreateInterviewModel>>();
   /**
-   * The full Application behind `applicationId`. The form model only keeps the id; this holds
+   * The full ApplicationSummary behind `applicationId`. The form model only keeps the id; this holds
    * the values (names, documents) that get pre-filled and locked while it is set.
    */
-  readonly selectedApplication = model<Application | null>(null);
+  readonly selectedApplication = model<ApplicationSummary | null>(null);
   /** Expanded by the user, or by a failed submit that needs the application choice. */
   protected readonly expanded = signal(false);
   /** "Existing" has nothing to pick from while loading, on error, or with no applications. */

@@ -1,5 +1,8 @@
 import { Component, computed, input } from '@angular/core';
-import { Application, ApplicationDocument } from '@app/features/applications/models/application';
+import {
+  ApplicationDocument,
+  ApplicationSummary,
+} from '@app/features/applications/models/application-summary';
 import { FieldTree, FormField } from '@angular/forms/signals';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { HlmCard, HlmCardContent, HlmCardHeader, HlmCardTitle } from '@spartan-ng/helm/card';
@@ -26,7 +29,7 @@ import { lucideFileText } from '@ng-icons/lucide';
 export class InterviewDocuments {
   readonly interviewForm = input.required<FieldTree<CreateInterviewModel>>();
   /** The selected Application, whose documents are pre-filled (and possibly not in the saved list). */
-  readonly application = input<Application | null>(null);
+  readonly application = input<ApplicationSummary | null>(null);
 
   protected readonly jobDescriptionDocs = computed(() =>
     this.asList(this.application()?.jobDescription),

@@ -7,7 +7,7 @@ import { toApiError } from '@app/core/api/api-error';
 import { HasUnsavedChanges } from '@app/core/guards/unsaved-changes-guard';
 import { PhaseSettingsOverrides } from './components/phase-settings/phase-settings';
 import { InterviewsApi } from '@app/features/interviews/services/interviews-api';
-import { Application } from '@app/features/applications/models/application';
+import { ApplicationSummary } from '@app/features/applications/models/application-summary';
 import { toCreateInterviewRequest } from './models/create-interview.request';
 import {
   createInterviewValidation,
@@ -38,7 +38,7 @@ import { InterviewDocuments } from '@app/features/interviews/pages/create-interv
 })
 export class CreateInterview implements HasUnsavedChanges {
   protected readonly model = signal(initialCreateInterviewModel());
-  protected readonly selectedApplication = signal<Application | null>(null);
+  protected readonly selectedApplication = signal<ApplicationSummary | null>(null);
   protected readonly interviewForm = form(this.model, createInterviewValidation);
   protected readonly validationSummary = computed(() => {
     const messages = new Set(

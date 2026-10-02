@@ -1,4 +1,11 @@
-import { Difficulty, InterviewerRole, InterviewType, ResponseStyle, Seniority, Tone } from './create-interview.schema';
+import {
+  Difficulty,
+  InterviewerRole,
+  InterviewType,
+  ResponseStyle,
+  Seniority,
+  Tone,
+} from './create-interview.schema';
 
 /** Maps a select value to its label */
 export function labelOf(options: readonly { value: string; label: string }[]) {

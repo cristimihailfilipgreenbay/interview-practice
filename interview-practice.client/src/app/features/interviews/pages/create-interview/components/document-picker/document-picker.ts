@@ -1,4 +1,13 @@
-import { Component, computed, inject, input, model, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  model,
+  signal,
+  untracked,
+} from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideFileText, lucideX } from '@ng-icons/lucide';
@@ -96,16 +105,31 @@ export class DocumentPicker {
   /** Clears the upload from the form and deletes the Document; not awaited, a failure is harmless. */
   protected removeUpload(): void {
     const document = this.uploadedDocument();
-    this.uploadedDocument.set(null);
     this.value.set(null);
-    this.uploadError.set(null);
     if (document) {
-      this.uploaded.update((list) => list.filter((doc) => doc.id !== document.id));
-      this.documentsApi.delete(document.id).subscribe({
-        next: () => this.savedDocuments.reload(),
-        error: () => undefined,
-      });
+      this.discardUpload(document);
     }
+  }
+
+  /** Forgets the uploaded Document here and deletes it on the server (not awaited). */
+  private discardUpload(document: StoredDocument): void {
+    this.uploadedDocument.set(null);
+    this.uploadError.set(null);
+    this.uploaded.update((list) => list.filter((doc) => doc.id !== document.id));
+    this.documentsApi.delete(document.id).subscribe({
+      next: () => this.savedDocuments.reload(),
+      error: () => undefined,
+    });
+  }
+
+  constructor() {
+    // Something else set a different Document (e.g. an Application's): the upload is replaced.
+    effect(() => {
+      const document = this.uploadedDocument();
+      if (document && this.value() !== document.id) {
+        untracked(() => this.discardUpload(document));
+      }
+    });
   }
 
   protected async setSaved(saved: boolean): Promise<void> {

@@ -6,13 +6,13 @@ export interface ApplicationStage {
   status: InterviewStatus;
 }
 
-/** A Document attached to an Application, with its name so it can be shown without a lookup. */
+/** A Document attached to an application, with its name so it can be shown without a lookup. */
 export interface ApplicationDocument {
   id: string;
   name: string;
 }
 
-export interface Application {
+export interface ApplicationSummary {
   id: string;
   companyName: string;
   jobTitle: string;
