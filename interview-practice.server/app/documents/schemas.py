@@ -35,5 +35,8 @@ class DocumentCreateForm(ApiModel):
     save: bool
 
 
-class DocumentRename(ApiModel):
-    name: DocumentName
+class DocumentUpdate(ApiModel):
+    """PATCH body: rename and/or change whether the Document is kept in the library."""
+
+    name: DocumentName | None = None
+    saved: bool | None = None
