@@ -45,7 +45,9 @@
       "@spartan-ng/helm/spinner": ["./src/app/shared/components/ui/spinner/src/index.ts"],
       "@spartan-ng/helm/sonner": ["./src/app/shared/components/ui/sonner/src/index.ts"],
       "@spartan-ng/helm/toggle-group": ["./src/app/shared/components/ui/toggle-group/src/index.ts"],
-      "@spartan-ng/helm/toggle": ["./src/app/shared/components/ui/toggle/src/index.ts"]
+      "@spartan-ng/helm/toggle": ["./src/app/shared/components/ui/toggle/src/index.ts"],
+      "@spartan-ng/helm/avatar": ["./src/app/shared/components/ui/avatar/src/index.ts"],
+      "@spartan-ng/helm/switch": ["./src/app/shared/components/ui/switch/src/index.ts"]
     }
   },
   "angularCompilerOptions": {
