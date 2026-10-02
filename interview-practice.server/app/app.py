@@ -4,6 +4,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from app import models  # noqa: F401  (registers models so Alembic sees them)
+from app.applications import applications_bp
 from app.documents import documents_bp
 from app.errors.handlers import register_error_handlers
 from app.extensions import db, migrate
@@ -23,6 +24,7 @@ def create_app() -> Flask:
 
     register_error_handlers(app)
     app.register_blueprint(documents_bp)
+    app.register_blueprint(applications_bp)
 
     @app.route("/")
     def hello_world() -> str:
