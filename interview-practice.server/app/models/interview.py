@@ -76,6 +76,9 @@ class Interview(Base):
     cv_document_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("documents.id", ondelete="SET NULL"), index=True
     )
+    cover_letter_document_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("documents.id", ondelete="SET NULL"), index=True
+    )
     coaching_helpers_enabled: Mapped[bool] = mapped_column(
         Boolean, server_default=false()
     )
@@ -98,6 +101,9 @@ class Interview(Base):
         foreign_keys=[job_description_document_id]
     )
     cv_document: Mapped[Document | None] = relationship(foreign_keys=[cv_document_id])
+    cover_letter_document: Mapped[Document | None] = relationship(
+        foreign_keys=[cover_letter_document_id]
+    )
     messages: Mapped[list[Message]] = relationship(
         back_populates="interview",
         order_by="Message.sequence",

@@ -26,6 +26,9 @@ class JobApplication(Base):
     cv_document_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("documents.id", ondelete="SET NULL"), index=True
     )
+    cover_letter_document_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("documents.id", ondelete="SET NULL"), index=True
+    )
     progress_score: Mapped[int | None]
     progress_summary: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
@@ -36,6 +39,9 @@ class JobApplication(Base):
         foreign_keys=[job_description_document_id]
     )
     cv_document: Mapped[Document | None] = relationship(foreign_keys=[cv_document_id])
+    cover_letter_document: Mapped[Document | None] = relationship(
+        foreign_keys=[cover_letter_document_id]
+    )
     # Deleting an application deletes its interviews (ADR 0008)
     interviews: Mapped[list[Interview]] = relationship(
         back_populates="job_application",

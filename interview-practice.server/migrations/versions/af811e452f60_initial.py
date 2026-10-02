@@ -1,9 +1,8 @@
 """initial
 
-
-Revision ID: b7ca88b3fe61
+Revision ID: af811e452f60
 Revises: 
-Create Date: 2026-10-01 11:59:47.186715
+Create Date: 2026-10-02 12:11:11.688055
 
 """
 from alembic import op
@@ -11,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'b7ca88b3fe61'
+revision = 'af811e452f60'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -36,13 +35,20 @@ def upgrade():
     sa.Column('job_title', sa.String(), nullable=False),
     sa.Column('job_description_document_id', sa.Uuid(), nullable=True),
     sa.Column('cv_document_id', sa.Uuid(), nullable=True),
+    sa.Column('cover_letter_document_id', sa.Uuid(), nullable=True),
     sa.Column('progress_score', sa.Integer(), nullable=True),
     sa.Column('progress_summary', sa.Text(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['cover_letter_document_id'], ['documents.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['cv_document_id'], ['documents.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['job_description_document_id'], ['documents.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
+    with op.batch_alter_table('job_applications', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_job_applications_cover_letter_document_id'), ['cover_letter_document_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_job_applications_cv_document_id'), ['cv_document_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_job_applications_job_description_document_id'), ['job_description_document_id'], unique=False)
+
     op.create_table('interviews',
     sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('job_application_id', sa.Uuid(), nullable=True),
@@ -62,17 +68,25 @@ def upgrade():
     sa.Column('persona_image_path', sa.String(), nullable=False),
     sa.Column('job_description_document_id', sa.Uuid(), nullable=True),
     sa.Column('cv_document_id', sa.Uuid(), nullable=True),
+    sa.Column('cover_letter_document_id', sa.Uuid(), nullable=True),
     sa.Column('coaching_helpers_enabled', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('response_style', sa.Enum('concise', 'detailed', name='responsestyle'), server_default='concise', nullable=False),
     sa.Column('evaluation_criteria', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('phase_settings_override', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('ended_at', sa.DateTime(timezone=True), nullable=True),
+    sa.ForeignKeyConstraint(['cover_letter_document_id'], ['documents.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['cv_document_id'], ['documents.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['job_application_id'], ['job_applications.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['job_description_document_id'], ['documents.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
+    with op.batch_alter_table('interviews', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_interviews_cover_letter_document_id'), ['cover_letter_document_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_interviews_cv_document_id'), ['cv_document_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_interviews_job_application_id'), ['job_application_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_interviews_job_description_document_id'), ['job_description_document_id'], unique=False)
+
     op.create_table('evaluations',
     sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('interview_id', sa.Uuid(), nullable=False),
@@ -113,50 +127,29 @@ def upgrade():
     with op.batch_alter_table('messages', schema=None) as batch_op:
         batch_op.create_index('ix_messages_interview_id_sequence', ['interview_id', 'sequence'], unique=False)
 
-    with op.batch_alter_table('interviews', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_interviews_cv_document_id'), ['cv_document_id'], unique=False)
-        batch_op.create_index(batch_op.f('ix_interviews_job_application_id'), ['job_application_id'], unique=False)
-        batch_op.create_index(batch_op.f('ix_interviews_job_description_document_id'), ['job_description_document_id'], unique=False)
-
-    with op.batch_alter_table('job_applications', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_job_applications_cv_document_id'), ['cv_document_id'], unique=False)
-        batch_op.create_index(batch_op.f('ix_job_applications_job_description_document_id'), ['job_description_document_id'], unique=False)
-
     # ### end Alembic commands ###
 
 
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
-    with op.batch_alter_table('job_applications', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_job_applications_job_description_document_id'))
-        batch_op.drop_index(batch_op.f('ix_job_applications_cv_document_id'))
-
-    with op.batch_alter_table('interviews', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_interviews_job_description_document_id'))
-        batch_op.drop_index(batch_op.f('ix_interviews_job_application_id'))
-        batch_op.drop_index(batch_op.f('ix_interviews_cv_document_id'))
-
     with op.batch_alter_table('messages', schema=None) as batch_op:
         batch_op.drop_index('ix_messages_interview_id_sequence')
 
     op.drop_table('messages')
     op.drop_table('interviewer_reviews')
     op.drop_table('evaluations')
+    with op.batch_alter_table('interviews', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_interviews_job_description_document_id'))
+        batch_op.drop_index(batch_op.f('ix_interviews_job_application_id'))
+        batch_op.drop_index(batch_op.f('ix_interviews_cv_document_id'))
+        batch_op.drop_index(batch_op.f('ix_interviews_cover_letter_document_id'))
+
     op.drop_table('interviews')
+    with op.batch_alter_table('job_applications', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_job_applications_job_description_document_id'))
+        batch_op.drop_index(batch_op.f('ix_job_applications_cv_document_id'))
+        batch_op.drop_index(batch_op.f('ix_job_applications_cover_letter_document_id'))
+
     op.drop_table('job_applications')
     op.drop_table('documents')
     # ### end Alembic commands ###
-
-    # drop_table does not drop the Postgres enum types that upgrade() created implicitly;
-    # without this, upgrading again fails with "type ... already exists".
-    bind = op.get_bind()
-    for enum_name in (
-        'messagerole',
-        'messagephase',
-        'verdict',
-        'responsestyle',
-        'interviewstatus',
-        'difficulty',
-        'documenttype',
-    ):
-        postgresql.ENUM(name=enum_name).drop(bind, checkfirst=True)
