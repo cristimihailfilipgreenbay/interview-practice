@@ -78,9 +78,6 @@ export class HlmRadio<T = unknown> {
    */
   // eslint-disable-next-line @angular-eslint/no-output-native
   public readonly change = output<BrnRadioChange<T>>();
-  protected readonly _errorStateClass = computed(() =>
-    this._groupSpartanInvalid() ? 'text-destructive' : '',
-  );
   protected readonly _computedClass = computed(() =>
     hlm(
       'group relative flex items-center gap-x-3',
@@ -99,6 +96,9 @@ export class HlmRadio<T = unknown> {
   protected readonly _dirty = computed(() => this._radioGroup?.controlState?.()?.dirty);
   protected readonly _groupSpartanInvalid = computed(
     () => this._radioGroup?.controlState?.()?.spartanInvalid,
+  );
+  protected readonly _errorStateClass = computed(() =>
+    this._groupSpartanInvalid() ? 'text-destructive' : '',
   );
 
   constructor() {
