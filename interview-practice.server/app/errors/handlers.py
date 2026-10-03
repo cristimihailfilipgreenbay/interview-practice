@@ -9,6 +9,7 @@ from app.errors.exceptions import (
     ApiError,
     BadRequestError,
     FileTooLargeError,
+    InputRejectedError,
     NotFoundError,
 )
 
@@ -38,6 +39,15 @@ def register_error_handlers(app: Flask) -> None:
 
     @app.errorhandler(ValidationError)
     def handle_validation_error(error: ValidationError) -> ResponseReturnValue:
+        errors = error.errors(include_url=False)
+        # The security guard reports through Pydantic so the failing field is known;
+        # it is a 422 of its own unless the request also had ordinary errors.
+        if all(e["type"] == "input_rejected" for e in errors):
+            first = errors[0]
+            field = ".".join(str(part) for part in first["loc"])
+            return handle_api_error(
+                InputRejectedError(first["msg"], {"field": field, **first["ctx"]})
+            )
         details = error.errors(include_url=False, include_context=False)
         return handle_api_error(
             BadRequestError("Invalid request.", {"errors": details})

@@ -302,7 +302,15 @@ reaching OpenRouter — not per-endpoint checks scattered across routes. Applies
 - Ask-back questions
 
 Checks include input length limits, prompt-injection pattern detection, and off-topic/abuse
-detection, optionally backed by a cheap classification call. Being one reusable module makes
+detection, optionally backed by a cheap classification call. **Built so far**
+(`app/llm/guard.py`): length limits (checked first, so the scan is bounded) and
+prompt-injection pattern detection that also catches common disguises (invisible
+characters, accents, look-alike letters, leetspeak, spaced-out letters); a rejection is a
+`422 INPUT_REJECTED`. Wired into Document upload and Create Interview; the chat and
+ask-back endpoints should call it when they are built. Off-topic/abuse detection and the
+classification call are not built. Alongside it, `fence()` wraps untrusted text in
+tags with every angle bracket escaped, so the prompt can mark it as data. Bare
+"developer mode" is deliberately allowed (mobile developers write about it). Being one reusable module makes
 it independently testable and gives a single place to reason about coverage — important
 since this is a required part of the assignment, not optional.
 

@@ -49,3 +49,29 @@ class FileTooLargeError(ApiError):
 class UnprocessableFileError(ApiError):
     status = 422
     code = "UNPROCESSABLE_FILE"
+
+
+class InputRejectedError(ApiError):
+    """The security guard (or the model provider's moderation) refused the input."""
+
+    status = 422
+    code = "INPUT_REJECTED"
+
+
+class LlmUpstreamError(ApiError):
+    """The model provider failed or returned something unusable."""
+
+    status = 502
+    code = "LLM_UPSTREAM_ERROR"
+
+
+class LlmUnavailableError(ApiError):
+    """The model provider can't serve us right now (rate limit, credits, key)."""
+
+    status = 503
+    code = "LLM_UNAVAILABLE"
+
+
+class LlmTimeoutError(ApiError):
+    status = 504
+    code = "LLM_TIMEOUT"
