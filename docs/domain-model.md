@@ -33,6 +33,26 @@ A reusable piece of candidate-supplied text: a CV, a cover letter, or a job desc
   before the Interview is submitted, a candidate who abandons the form leaves an unsaved,
   unreferenced Document behind — accepted for now, see
   [ADR 0011](./adr/0011-documents-are-uploaded-before-the-interview-is-created.md).
+- `analysis`: the Document's `DocumentAnalysis`, once phase 1 has run on it (see below)
+- `created_at`
+
+## DocumentAnalysis
+
+What phase 1 (JD/CV analysis) extracted from one Document, stored with it and reused by
+every Interview that uses the Document — see
+[ADR 0012](./adr/0012-document-analysis-cached-per-document-and-model.md). Created lazily
+the first time an Interview needs it, not at upload.
+
+- `document_id`: FK → Document (unique — one analysis per Document)
+- `model`: the model that produced it. An Interview whose `jd_analysis` model differs
+  re-analyses the Document and overwrites the row
+- `domain`: nullable — the role's field; extracted from job descriptions and CVs
+- `company_name`: nullable — the employer, extracted from job descriptions and cover
+  letters only (a CV lists *past* employers), null when the document doesn't name one
+- `skills`: list of text — concrete skills/tools the role calls for (job description) or
+  the candidate lists (CV), most important first; empty for a cover letter
+- `likely_topics`: list of text — subjects an interviewer would probe; for a CV, what its
+  experience invites questions on; empty for a cover letter
 - `created_at`
 
 ## JobApplication

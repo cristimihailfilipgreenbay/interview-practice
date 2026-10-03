@@ -158,6 +158,32 @@ fields; `413 FILE_TOO_LARGE` over the limit; `422 UNPROCESSABLE_FILE` if the fil
 readable PDF, is encrypted, or has no text layer (scanned PDFs — there is no OCR).
 Response `201`: the created Document, same shape as the list items.
 
+### `PUT /api/documents/:id/analysis`
+
+No body. Runs phase 1 (JD/CV analysis, see `architecture.md`) on the Document and stores
+the result as its `DocumentAnalysis`, using the default `jd_analysis` model. A `PUT`
+because it is **idempotent**: if the Document already has an analysis from that model it
+answers at once, without calling the LLM.
+
+The client calls it **only right after an upload** in Create Interview, showing the
+attachment with an "Analyzing document…" indicator and keeping the Start button disabled
+meanwhile. Picking a saved Document, or an Application that pre-fills Documents, does not
+call it: those Documents were analysed when they were uploaded, and if one has no analysis
+(or the Interview overrides the `jd_analysis` model), `POST /api/interviews` analyses it at
+submit. There is no cancel and no retry: the candidate stops the analysis by removing the
+attachment, which abandons the request and deletes the Document. A failure is handled by
+who is at fault: if the Document itself is rejected (`422 INPUT_REJECTED`), the client
+deletes it and tells the candidate to use a different file; for any other failure (provider
+unavailable, timeout, network), which is not the Document's fault, the client keeps the
+Document and shows a notice, and the analysis runs again at submit. See
+[ADR 0012](./adr/0012-document-analysis-cached-per-document-and-model.md).
+
+Response `200`: `{model, domain, companyName, skills, likelyTopics}` (`domain` and
+`companyName` may be `null`). `404 NOT_FOUND` for an unknown Document; `502`/`503`/`504`
+(`LLM_UPSTREAM_ERROR`/`LLM_UNAVAILABLE`/`LLM_TIMEOUT`) when the provider fails. Abandoning
+the request is client-side only: the server finishes the call and caches the result, unless
+the Document was deleted in the meantime.
+
 ### `GET /api/documents/:id/download`
 
 Binary response (the original uploaded file), `Content-Disposition` filename from

@@ -41,7 +41,13 @@ step is implemented.
   file then replaces the select and dropzone with an attachment (with a remove button) and
   a "save for later" checkbox, checked by default for a CV or cover letter and unchecked for a
   job description (usually specific to one role); the form holds only the returned
-  Document id. Optional.
+  Document id. Right after an upload the Document is analysed (the attachment shows an
+  "Analyzing document…" indicator, and Start stays disabled meanwhile); removing the
+  attachment stops it and deletes the Document. If the Document itself is rejected it is
+  deleted and the candidate is told to use a different file; if the failure is on our side
+  (provider unavailable, timeout) it is kept, with a notice, and analysed again when the
+  interview is created. Saved Documents were already
+  analysed when uploaded. Optional.
 - **CV** and **cover letter** — two separate fields, each with the same
   select-existing-or-dropzone-upload pattern as job description. Both optional.
 - **Interview helpers** toggle — boolean, default `false`. When on, each Q&A-phase question

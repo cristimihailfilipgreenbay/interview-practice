@@ -127,16 +127,25 @@ Each one corresponds to a distinct backend phase of the interview lifecycle, rat
 All five run on **`gpt-5-mini`** by default (selectable among the allowed OpenRouter
 chat models via Preferences), using 5 deliberately distinct techniques:
 
-1. **JD/CV analysis** (runs on Create Interview submit) — extracts skills, likely topics,
-   and the role's domain (stored as `Interview.domain`) from the job title and the job
-   description and/or CV text. Technique: **zero-shot**
-   extraction with a structured JSON output contract. Plain context-injection, not RAG —
+1. **JD/CV analysis** (requested by the client right after a Document is
+   uploaded, via `PUT /api/documents/:id/analysis`, using the default model; Create Interview
+   runs it at submit only for a Document with no analysis, or when the Interview overrides
+   the `jd_analysis` model) — one small call **per Document**
+   (job description, CV, cover letter; run in parallel at submit): extracts skills, likely topics,
+   the role's domain (job description / CV) and the employer's name (job description /
+   cover letter). The result is stored as that Document's `DocumentAnalysis` and reused by
+   every later Interview that uses the Document, unless that Interview's `jd_analysis`
+   model differs, in which case it is re-run and overwritten — see
+   [ADR 0012](./adr/0012-document-analysis-cached-per-document-and-model.md). The
+   Interview's `domain` comes from the job description's (else the CV's) analysis.
+   Technique: **zero-shot** extraction with a structured JSON output contract. Plain context-injection, not RAG —
    see [ADR 0004](./adr/0004-job-description-context-is-not-rag.md).
 2. **Question-plan & persona generation** — produces the interviewer persona (name, job
    title, tone, and a knowledge scope/backstory shaped by `interviewer_role`), the question
    plan (skewed
    technical vs. behavioral by `interview_type`), and a structured **evaluation rubric**
-   (technical + behavioral criteria, `Interview.evaluation_criteria`) — the assignment's
+   (technical + behavioral criteria, stored as `EvaluationCriterion` rows; the question plan
+   as `InterviewQuestion` rows) — the assignment's
    "generate interviewer guidelines" optional task, folded into this same call rather than a
    separate one. Seeded by `difficulty`, `domain`, `seniority`, `interview_type`,
    `interviewer_role`, `company_name`, and the JD/CV analysis output. Technique:

@@ -127,6 +127,11 @@ The structured technical + behavioral rubric generated with the question plan, u
 ground an Evaluation. Never shown to the candidate.
 _Avoid_: rubric, interviewer guidelines
 
+**Document analysis**:
+What phase 1 extracted from one Document (domain, employer, skills, likely topics), kept
+with the Document and reused across Interviews until a different model is chosen.
+_Avoid_: JD analysis (it covers CVs and cover letters too)
+
 **Interview model**:
 The model used for the candidate-facing pipeline, from JD/CV analysis through Evaluation.
 Default `gpt-5-mini`.

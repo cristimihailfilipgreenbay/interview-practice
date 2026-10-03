@@ -28,6 +28,23 @@ This is a single-implicit-user prototype (see [ADR 0002](./adr/0002-single-user-
 | `saved` | `boolean` | `true` on upload for a CV or cover letter, `false` for a job description; changed by the candidate's "save for later" checkbox; a row always exists regardless (an Interview's FK needs something to point at), only `saved = true` rows are offered in the select-existing list |
 | `created_at` | `timestamptz` | default now() |
 
+## `document_analyses`
+
+What phase 1 (JD/CV analysis) extracted from a `documents` row, cached so the document is
+analysed once and reused by every Interview that uses it. See
+[ADR 0012](./adr/0012-document-analysis-cached-per-document-and-model.md).
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` PK, default `gen_random_uuid()` | |
+| `document_id` | `uuid`, FK → `documents.id` `ON DELETE CASCADE`, unique, not null | one-to-one: at most one analysis per document |
+| `model` | `text` | OpenRouter model id that produced it; the cache key: an Interview whose `jd_analysis` model differs re-analyses and overwrites the row |
+| `domain` | `text`, nullable | the role's field (e.g. "backend engineering"); only for job descriptions and CVs |
+| `company_name` | `text`, nullable | the employer, only read from job descriptions and cover letters; null when the document doesn't name one |
+| `skills` | `text[]`, not null, default `{}` | concrete skills/tools, most important first; empty for cover letters |
+| `likely_topics` | `text[]`, not null, default `{}` | subjects an interviewer would probe (for a CV: what its experience invites questions on); empty for cover letters |
+| `created_at` | `timestamptz` | default now(); reset when the row is re-analysed |
+
 ## `job_applications`
 
 Groups multiple `interviews` rows as stages of the same real-world hiring pipeline. See
