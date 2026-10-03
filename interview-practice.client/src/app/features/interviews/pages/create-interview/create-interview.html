@@ -44,7 +44,7 @@
         position="top"
       >
         <button
-          [disabled]="interviewForm().invalid()"
+          [disabled]="submitDisabled()"
           [loading]="interviewForm().submitting()"
           hlmBtn
           type="submit"

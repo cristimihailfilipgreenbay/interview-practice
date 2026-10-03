@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, viewChildren } from '@angular/core';
 import {
   ApplicationDocument,
   ApplicationSummary,
@@ -30,6 +30,10 @@ export class InterviewDocuments {
   readonly interviewForm = input.required<FieldTree<CreateInterviewModel>>();
   /** The selected Application, whose documents are pre-filled (and possibly not in the saved list). */
   readonly application = input<ApplicationSummary | null>(null);
+
+  private readonly pickers = viewChildren(DocumentPicker);
+  /** True while any of the three Documents is being analysed. */
+  readonly analyzing = computed(() => this.pickers().some((picker) => picker.analyzing()));
 
   protected readonly jobDescriptionDocs = computed(() =>
     this.asList(this.application()?.jobDescription),

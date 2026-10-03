@@ -4,6 +4,8 @@ import { map, Observable } from 'rxjs';
 import { environment } from '@env/environment';
 import { mapApiError } from '@app/core/api/api-error';
 import {
+  DocumentAnalysis,
+  documentAnalysisSchema,
   DocumentType,
   StoredDocument,
   storedDocumentListSchema,
@@ -29,6 +31,13 @@ export class DocumentsApi {
     body.append('save', String(save));
     return this.http.post<unknown>(this.url, body).pipe(
       map((response) => storedDocumentSchema.parse(response)),
+      mapApiError(),
+    );
+  }
+
+  analyzeDocument(id: string): Observable<DocumentAnalysis> {
+    return this.http.put<unknown>(`${this.url}/${id}/analysis`, null).pipe(
+      map((response) => documentAnalysisSchema.parse(response)),
       mapApiError(),
     );
   }

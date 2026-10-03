@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { form, submit } from '@angular/forms/signals';
 import { Router, RouterLink } from '@angular/router';
 import { HlmBreadcrumbImports } from '@spartan-ng/helm/breadcrumb';
@@ -52,6 +52,12 @@ export class CreateInterview implements HasUnsavedChanges {
     return messages.size > 0 ? [...messages].join(' · ') : 'Some fields need attention.';
   });
   protected readonly submitError = signal<string | null>(null);
+  private readonly documents = viewChild(InterviewDocuments);
+  /** Documents are analysed as soon as they are picked; starting waits for that to finish. */
+  protected readonly analyzingDocuments = computed(() => this.documents()?.analyzing() ?? false);
+  protected readonly submitDisabled = computed(
+    () => this.interviewForm().invalid() || this.analyzingDocuments(),
+  );
   private readonly interviewsApi = inject(InterviewsApi);
   private readonly router = inject(Router);
   private readonly submitted = signal(false);
@@ -68,6 +74,9 @@ export class CreateInterview implements HasUnsavedChanges {
 
   protected onSubmit(event: Event): void {
     event.preventDefault();
+    if (this.analyzingDocuments()) {
+      return;
+    }
     this.submitError.set(null);
     void submit(this.interviewForm, async () => {
       const request = toCreateInterviewRequest(this.model());
