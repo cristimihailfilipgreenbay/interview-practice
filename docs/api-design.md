@@ -79,7 +79,9 @@ Create Interview submission. Request:
   all); `{id}` to add this Interview as the next stage of an existing one (pre-fills
   `companyName`/`jobTitle`/documents from it, per `workflow.md`); `{createNew: true}`
   creates a fresh `JobApplication` from this request's `companyName`/`jobTitle` and
-  attaches this Interview as its first stage.
+  attaches this Interview as its first stage. If `companyName` is absent, the
+  Application's company is read from the job description or cover letter (left null if
+  neither names one).
 
 Response `201`: the created `Interview` (id, `status: "in_progress"`, `personaName`,
 `personaTitle`, `personaImagePath` as a servable URL, `targetQuestionCount`, etc.) —

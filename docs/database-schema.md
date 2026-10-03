@@ -36,7 +36,7 @@ Groups multiple `interviews` rows as stages of the same real-world hiring pipeli
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `uuid` PK, default `gen_random_uuid()` | |
-| `company_name` | `text` | |
+| `company_name` | `text`, nullable | null when the candidate gave none and none could be read from the job description / cover letter |
 | `job_title` | `text` | |
 | `job_description_document_id` | `uuid`, nullable, FK → `documents.id` | |
 | `cv_document_id` | `uuid`, nullable, FK → `documents.id` | |

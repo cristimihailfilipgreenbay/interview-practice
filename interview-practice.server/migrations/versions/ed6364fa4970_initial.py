@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: af811e452f60
+Revision ID: ed6364fa4970
 Revises: 
-Create Date: 2026-10-02 12:11:11.688055
+Create Date: 2026-10-03 12:44:37.400642
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'af811e452f60'
+revision = 'ed6364fa4970'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -31,7 +31,7 @@ def upgrade():
     )
     op.create_table('job_applications',
     sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
-    sa.Column('company_name', sa.String(), nullable=False),
+    sa.Column('company_name', sa.String(), nullable=True),
     sa.Column('job_title', sa.String(), nullable=False),
     sa.Column('job_description_document_id', sa.Uuid(), nullable=True),
     sa.Column('cv_document_id', sa.Uuid(), nullable=True),

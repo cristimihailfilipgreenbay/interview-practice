@@ -14,7 +14,7 @@ export interface ApplicationDocument {
 
 export interface ApplicationSummary {
   id: string;
-  companyName: string;
+  companyName: string | null;
   jobTitle: string;
   jobDescription: ApplicationDocument | null;
   cv: ApplicationDocument | null;

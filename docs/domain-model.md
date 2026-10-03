@@ -52,7 +52,7 @@ each — `Message`, `Evaluation`, `InterviewerReview`), not just the grouping �
 header is also the click target into the `/applications/:id` Application Overview page
 (see `architecture.md`).
 
-- `company_name`: free text
+- `company_name`: free text, optional — when a stage creates the Application without one, it is read from the job description or cover letter if either names a company
 - `job_title`: free text
 - `job_description_document_id`: optional FK → Document (`type = job_description`)
 - `cv_document_id`: optional FK → Document (`type = cv`)

@@ -25,7 +25,7 @@ class ApplicationSummary(ApiModel):
     """List item. The documents let Create Interview pre-fill (and name) a new stage."""
 
     id: uuid.UUID
-    company_name: str
+    company_name: str | None
     job_title: str
     job_description: ApplicationDocument | None = Field(
         validation_alias="job_description_document",

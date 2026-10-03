@@ -18,7 +18,7 @@ class JobApplication(Base):
     __tablename__ = "job_applications"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    company_name: Mapped[str] = mapped_column(String)
+    company_name: Mapped[str | None] = mapped_column(String)
     job_title: Mapped[str] = mapped_column(String)
     job_description_document_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("documents.id", ondelete="SET NULL"), index=True

@@ -107,7 +107,7 @@ export class InterviewApplication {
       return;
     }
     form.jobTitle().value.set(application.jobTitle);
-    form.companyName().value.set(application.companyName);
+    form.companyName().value.set(application.companyName ?? '');
     form.jobDescriptionId().value.set(application.jobDescription?.id ?? null);
     form.cvId().value.set(application.cv?.id ?? null);
     form.coverLetterId().value.set(application.coverLetter?.id ?? null);
