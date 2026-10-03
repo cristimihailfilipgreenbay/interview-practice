@@ -20,6 +20,7 @@ from app.errors.exceptions import (
     UnprocessableFileError,
 )
 from app.extensions import db
+from app.llm.guard import MAX_DOCUMENT_CHARS, check_text
 from app.models import Document
 from app.paths import instance_dir
 from app.serialization import to_json, to_json_list
@@ -76,6 +77,8 @@ def create_document() -> ResponseReturnValue:
         raw_text = extract_pdf_text(data)
     except PdfParseError as exc:
         raise UnprocessableFileError(str(exc)) from exc
+    # the text goes into prompts later, so vet it before anything is stored
+    check_text(raw_text, max_length=MAX_DOCUMENT_CHARS)
 
     # save locally
     relative_path = UPLOAD_SUBDIR / f"{uuid.uuid4()}.pdf"
@@ -97,7 +100,7 @@ def create_document() -> ResponseReturnValue:
         db.session.commit()
     except Exception:
         db.session.rollback()
-        absolute_path.unlink(missing_ok=True) # cleanup
+        absolute_path.unlink(missing_ok=True)  # cleanup
         raise
 
     return jsonify(to_json(DocumentPublic, document)), 201
