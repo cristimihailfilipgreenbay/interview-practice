@@ -13,16 +13,14 @@ step is implemented.
   `company_name`/`job_title`/documents below from it, so they don't need re-entering per
   stage; a brand-new Application can also be created inline by just filling those fields
   as normal.
-- **Job title** — free text; seeds an auto-suggested `domain`.
+- **Job title** — free text; phase 1 also infers the role's domain from it (and the JD/CV).
 - **Company name** — free text, optional, independent of the job description upload below.
   Without it, the interviewer would have no company identity to reference whenever the JD
   is skipped — real interviews near-universally test whether the candidate researched the
   company ("what do you know about us", "why do you want to work here").
-- **Domain** — auto-suggested from job title (e.g. "Software Engineer" → "Software"), but
-  always editable, since the suggestion can be a false positive (e.g. "IT Technician").
 - **Seniority** — e.g. junior / mid / senior.
 - **Difficulty** — easy / medium / hard. A preset that seeds `target_question_count`,
-  `tone`, and question complexity — each independently editable afterward, and `difficulty`
+  `tone`, `interview_type`, `response_style`, `coaching_helpers_enabled` (on for easy only) and question complexity — each independently editable afterward, and `difficulty`
   itself is still passed to the question-plan prompt as its own signal, not discarded once
   other fields are tweaked.
 - **Response style** — concise / detailed. Shapes the live interviewer's phrasing and the
@@ -37,18 +35,27 @@ step is implemented.
   see `domain-model.md`'s default-cascade table), both still independently editable again
   afterward. Also shapes the generated persona's knowledge scope/backstory and which
   ask-back questions make sense to suggest later.
-- **Job description** — select a previously saved one, or upload a new PDF. The upload
-  happens immediately when the file is picked (parsed server-side, so a bad PDF is
-  reported right there), and prompts "save this for later?"; the form then holds only the
-  returned Document id. Optional.
-- **CV / cover letter** — same select-existing-or-upload-new-with-save-prompt pattern as
-  job description. Optional.
+- **Job description** — select a previously saved one, or upload a new PDF by
+  clicking or dropping it on a dropzone (PDF only). The upload happens immediately when the
+  file is picked (parsed server-side, so a bad PDF is reported right there). The uploaded
+  file then replaces the select and dropzone with an attachment (with a remove button) and
+  a "save for later" checkbox, checked by default for a CV or cover letter and unchecked for a
+  job description (usually specific to one role); the form holds only the returned
+  Document id. Right after an upload the Document is analysed (the attachment shows an
+  "Analyzing document…" indicator, and Start stays disabled meanwhile); removing the
+  attachment stops it and deletes the Document. If the Document itself is rejected it is
+  deleted and the candidate is told to use a different file; if the failure is on our side
+  (provider unavailable, timeout) it is kept, with a notice, and analysed again when the
+  interview is created. Saved Documents were already
+  analysed when uploaded. Optional.
+- **CV** and **cover letter** — two separate fields, each with the same
+  select-existing-or-dropzone-upload pattern as job description. Both optional.
 - **Interview helpers** toggle — boolean, default `false`. When on, each Q&A-phase question
   comes with a coaching-hint card grounded in the CV/cover letter where a real match
   exists, falling back to a generic hint when there's no document or no grounded match —
   the hint prompt must never fabricate experience the candidate didn't actually provide.
 - **Advanced settings** (collapsed, nice to have) — per-phase overrides for model
-  (`gpt-5-mini`/`gpt-5-nano` for starters), temperature, max tokens, and reasoning effort,
+  (`gpt-5-mini`/`gpt-5-nano`/`gpt-4o-mini`/`typesafe/jev-1.13`), temperature, max tokens, and reasoning effort,
   for any of the 5 phases individually; anything left unset falls back to the global
   Preferences default.
 

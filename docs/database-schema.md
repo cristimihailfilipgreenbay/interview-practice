@@ -15,6 +15,10 @@ This is a single-implicit-user prototype (see [ADR 0002](./adr/0002-single-user-
 — no `users` table exists yet; adding one later would mean adding an `owner_id` FK to
 `documents` and `interviews`.
 
+**Structured data gets columns or tables, not JSONB**, so the schema shows its shape
+(see [ADR 0012](./adr/0012-document-analysis-cached-per-document-and-model.md)). There is
+no JSONB column.
+
 ## `documents`
 
 | Column | Type | Notes |
@@ -25,8 +29,25 @@ This is a single-implicit-user prototype (see [ADR 0002](./adr/0002-single-user-
 | `raw_text` | `text` | extracted content, what the LLM phases read |
 | `source_filename` | `text` | original uploaded filename; always present, uploads are the only ingestion path |
 | `file_path` | `text` | local-disk path, stored *relative to* the Flask app's `instance/` folder (e.g. `uploads/documents/<uuid>.pdf`), to the original uploaded file, so it can be downloaded back exactly as uploaded — same mechanism as `interviews.persona_image_path` |
-| `saved` | `boolean` | default from the candidate's "save this for later?" choice; a row always exists regardless (an Interview's FK needs something to point at), only `saved = true` rows are offered in the select-existing list |
+| `saved` | `boolean` | `true` on upload for a CV or cover letter, `false` for a job description; changed by the candidate's "save for later" checkbox; a row always exists regardless (an Interview's FK needs something to point at), only `saved = true` rows are offered in the select-existing list |
 | `created_at` | `timestamptz` | default now() |
+
+## `document_analyses`
+
+What phase 1 (JD/CV analysis) extracted from a `documents` row, cached so the document is
+analysed once and reused by every Interview that uses it. See
+[ADR 0012](./adr/0012-document-analysis-cached-per-document-and-model.md).
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` PK, default `gen_random_uuid()` | |
+| `document_id` | `uuid`, FK → `documents.id` `ON DELETE CASCADE`, unique, not null | one-to-one: at most one analysis per document |
+| `model` | `text` | OpenRouter model id that produced it; the cache key: an Interview whose `jd_analysis` model differs re-analyses and overwrites the row |
+| `domain` | `text`, nullable | the role's field (e.g. "backend engineering"); only for job descriptions and CVs |
+| `company_name` | `text`, nullable | the employer, only read from job descriptions and cover letters; null when the document doesn't name one |
+| `skills` | `text[]`, not null, default `{}` | concrete skills/tools, most important first; empty for cover letters |
+| `likely_topics` | `text[]`, not null, default `{}` | subjects an interviewer would probe (for a CV: what its experience invites questions on); empty for cover letters |
+| `created_at` | `timestamptz` | default now(); reset when the row is re-analysed |
 
 ## `job_applications`
 
@@ -36,11 +57,12 @@ Groups multiple `interviews` rows as stages of the same real-world hiring pipeli
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `uuid` PK, default `gen_random_uuid()` | |
-| `company_name` | `text` | |
+| `company_name` | `text`, nullable | null when the candidate gave none and none could be read from the job description / cover letter |
 | `job_title` | `text` | |
 | `job_description_document_id` | `uuid`, nullable, FK → `documents.id` | |
 | `cv_document_id` | `uuid`, nullable, FK → `documents.id` | |
-| `progress_score` | `integer`, nullable | 1-5 aggregate performance-trend rating; same scale as `interviewer_reviews.score_breakdown` |
+| `cover_letter_document_id` | `uuid`, nullable, FK → `documents.id` | |
+| `progress_score` | `integer`, nullable | 1-5 aggregate performance-trend rating; same scale as the `interviewer_reviews.score_*` columns |
 | `progress_summary` | `text`, nullable | narrative accompanying `progress_score`; both regenerated together once 2+ stages have an Evaluation — see domain-model.md |
 | `created_at` | `timestamptz` | default now() |
 
@@ -56,26 +78,74 @@ Deleting a row here cascades (`ON DELETE CASCADE`) to every `interviews` row wit
 | `job_application_id` | `uuid`, nullable, FK → `job_applications.id` | nullable — a standalone Interview needs no Application |
 | `job_title` | `text` | |
 | `company_name` | `text`, nullable | optional, independent of the job description Document; lets persona/conversation/ask-back suggestions reference a real company even when no JD is uploaded |
-| `domain` | `text` | auto-suggested, user-editable |
+| `domain` | `text` | taken from the job description's (else the CV's) `document_analyses.domain` at creation; never entered by the candidate |
 | `seniority` | `text` | |
 | `difficulty` | `enum(easy, medium, hard)` | |
-| `tone` | `text` | e.g. strict/neutral/friendly; extensible, so plain text rather than a fixed enum |
+| `tone` | `text` | strict / neutral / friendly (a fixed set in the client form); plain text rather than a DB enum so adding a tone needs no migration |
 | `interview_type` | `text` | e.g. technical/behavioral; plain text for future extensibility (e.g. "mixed") |
 | `interviewer_role` | `text` | e.g. recruiter/hr/hiring_manager; plain text, same extensibility reasoning as `tone` |
-| `target_question_count` | `integer` | soft cap, seeded by difficulty |
+| `target_question_count` | `integer` | soft cap, seeded by difficulty; 1–30 (`CHECK`) |
 | `status` | `enum(in_progress, completed, abandoned)` | |
 | `last_activity_at` | `timestamptz` | updated on every new message; staleness timeout 30 minutes — lazily detects a stale/ungracefully-closed session and marks it `abandoned` — see domain-model.md |
 | `persona_name` | `text` | |
 | `persona_title` | `text` | job title shown alongside `persona_name`; generated in the same phase 2 call |
+| `persona_backstory` | `text` | the persona's background and knowledge scope, from the same phase 2 call; fed to the live conversation, never returned by the API |
 | `persona_image_path` | `text` | local-disk path, under the Flask app's `instance/` folder |
 | `job_description_document_id` | `uuid`, nullable, FK → `documents.id` | |
 | `cv_document_id` | `uuid`, nullable, FK → `documents.id` | |
+| `cover_letter_document_id` | `uuid`, nullable, FK → `documents.id` | |
 | `coaching_helpers_enabled` | `boolean` | set by candidate at creation; default `false` |
 | `response_style` | `enum(concise, detailed)` | default `concise`; affects phase 3 phrasing and phase 5 write-up length |
-| `evaluation_criteria` | `jsonb` | `{technical: string[], behavioral: string[]}` — see domain-model.md |
-| `phase_settings_override` | `jsonb` | keyed by phase (`jd_analysis`, `question_plan`, `live_conversation`, `ask_back`, `evaluation`, `interviewer_review`); each value optionally `{model, temperature, max_tokens, reasoning_effort}`; any omitted key/field falls back to the global Preferences default. `interviewer_review`'s model choice is a narrower set (`google/gemini-2.5-flash`/`gpt-5-mini`/`gpt-5-nano`) than the other 5 phases' — see architecture.md |
 | `created_at` | `timestamptz` | default now() |
 | `ended_at` | `timestamptz`, nullable | |
+
+## `interview_phase_settings`
+
+Per-Interview LLM overrides for one phase (the "advanced settings" on Create Interview).
+A row exists only for a phase the candidate overrode; no row means every setting of that
+phase uses the global Preferences default.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` PK, default `gen_random_uuid()` | |
+| `interview_id` | `uuid`, FK → `interviews.id` `ON DELETE CASCADE`, not null | |
+| `phase` | `enum(jd_analysis, question_plan, live_conversation, ask_back, evaluation, interviewer_review)` | |
+| `model` | `text`, nullable | OpenRouter model id. `interviewer_review`'s choice is a narrower set (`google/gemini-2.5-flash`/`gpt-5-mini`/`gpt-5-nano`/`typesafe/jev-1.13`) than the other 5 phases' — see architecture.md |
+| `temperature` | `double precision`, nullable | |
+| `max_tokens` | `integer`, nullable | |
+| `reasoning_effort` | `text`, nullable | |
+
+Unique: `(interview_id, phase)`. Any column left null falls back to the Preferences default.
+
+## `interview_questions`
+
+The question plan (phase 2): the ordered questions/topics the interviewer intends to
+cover. Owned by the Interview and created with it; see `domain-model.md`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` PK, default `gen_random_uuid()` | |
+| `interview_id` | `uuid`, FK → `interviews.id` `ON DELETE CASCADE`, not null | |
+| `sequence` | `integer` | order within the plan, from 1 |
+| `category` | `enum(technical, behavioral)` | |
+| `question` | `text` | |
+
+Unique: `(interview_id, sequence)`, which also serves ordered retrieval.
+
+## `evaluation_criteria`
+
+The evaluation rubric (phase 2), one row per criterion; grounds the STAR evaluation
+(phase 5). Never shown to the candidate.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` PK, default `gen_random_uuid()` | |
+| `interview_id` | `uuid`, FK → `interviews.id` `ON DELETE CASCADE`, not null | |
+| `sequence` | `integer` | order within the rubric, from 1 |
+| `category` | `enum(technical, behavioral)` | same enum as `interview_questions.category` |
+| `criterion` | `text` | e.g. "correctly reasons about time complexity tradeoffs" |
+
+Unique: `(interview_id, sequence)`.
 
 ## `messages`
 
@@ -101,7 +171,11 @@ Index: `(interview_id, sequence)` for ordered transcript retrieval.
 | `verdict` | `enum(hire, no_hire)` | |
 | `reasoning` | `text` | |
 | `improvement_suggestions` | `text` | |
-| `star_breakdown` | `jsonb` | `{situation, task, action, result: string, completeness: "strong"\|"partial"\|"weak"}` — see domain-model.md |
+| `star_situation` | `text` | short assessment of the Situation, aggregated across the whole interview |
+| `star_task` | `text` | same, for Task |
+| `star_action` | `text` | same, for Action |
+| `star_result` | `text` | same, for Result |
+| `star_completeness` | `enum(strong, partial, weak)` | overall STAR completeness rating |
 | `incomplete` | `boolean` | default false; true when interview was abandoned |
 | `model_used` | `text` | OpenRouter model id used for this evaluation; currently always `gpt-5-mini`, same as the rest of the candidate pipeline (see architecture.md) |
 | `created_at` | `timestamptz` | default now() |
@@ -116,7 +190,9 @@ Dev-facing "LLM-as-judge" assessment of the AI interviewer's own conduct, distin
 | `id` | `uuid` PK, default `gen_random_uuid()` | |
 | `interview_id` | FK → `interviews.id`, unique, not null | one-to-one |
 | `judge_model` | `text` | OpenRouter model id used; default `google/gemini-2.5-flash` |
-| `score_breakdown` | `jsonb` | `{question_relevance, persona_consistency, pacing: 1-5}` — see domain-model.md |
+| `score_question_relevance` | `smallint` | 1-5 (`CHECK`) |
+| `score_persona_consistency` | `smallint` | 1-5 (`CHECK`) |
+| `score_pacing` | `smallint` | 1-5 (`CHECK`) |
 | `reasoning` | `text` | |
 | `created_at` | `timestamptz` | default now() |
 
@@ -124,12 +200,20 @@ Dev-facing "LLM-as-judge" assessment of the AI interviewer's own conduct, distin
 
 - `documents.id` ← `job_applications.job_description_document_id` (nullable)
 - `documents.id` ← `job_applications.cv_document_id` (nullable)
+- `documents.id` ← `job_applications.cover_letter_document_id` (nullable)
 - `job_applications.id` ← `interviews.job_application_id` (nullable — one application, many
   stage interviews)
 - `documents.id` ← `interviews.job_description_document_id` (nullable, many interviews can
   reference the same saved job description)
 - `documents.id` ← `interviews.cv_document_id` (nullable, same pattern)
+- `documents.id` ← `interviews.cover_letter_document_id` (nullable, same pattern)
+- `documents.id` ← `document_analyses.document_id` (one document, at most one analysis;
+  deleting the document deletes it)
 - `interviews.id` ← `messages.interview_id` (one interview, many messages)
+- `interviews.id` ← `interview_phase_settings.interview_id` (one interview, at most one
+  row per phase)
+- `interviews.id` ← `interview_questions.interview_id` (one interview, many planned questions)
+- `interviews.id` ← `evaluation_criteria.interview_id` (one interview, many criteria)
 - `interviews.id` ← `evaluations.interview_id` (one interview, at most one evaluation)
 - `interviews.id` ← `interviewer_reviews.interview_id` (one interview, at most one
   interviewer review)
@@ -140,12 +224,13 @@ Dev-facing "LLM-as-judge" assessment of the AI interviewer's own conduct, distin
   `interviewer_reviews` `.interview_id` — deleting a `job_applications` row removes its
   interviews and everything under them (ADR 0008).
 - **`ON DELETE SET NULL`**: every FK to `documents` (`job_applications` and `interviews`,
-  both `job_description_document_id` and `cv_document_id`). Deleting a Document leaves the
+  each of `job_description_document_id`, `cv_document_id` and
+  `cover_letter_document_id`). Deleting a Document leaves the
   interviews and applications that referenced it in place, just without the link. The
   columns are nullable already; blocking the delete instead was the alternative.
-- **Indexes**: Postgres doesn't index foreign keys automatically, so the five FK columns
-  that aren't covered by another index are indexed (`interviews.job_application_id`, both
-  document FKs on `interviews`, both on `job_applications`). `evaluations.interview_id` and
+- **Indexes**: Postgres doesn't index foreign keys automatically, so the seven FK columns
+  that aren't covered by another index are indexed (`interviews.job_application_id`, all
+  three document FKs on `interviews`, all three on `job_applications`). `evaluations.interview_id` and
   `interviewer_reviews.interview_id` are covered by their unique constraint, and `messages`
   by the `(interview_id, sequence)` index.
 

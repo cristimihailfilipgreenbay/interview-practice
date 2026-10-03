@@ -17,6 +17,17 @@ module.exports = defineConfig([
     ],
     processor: angular.processInlineTemplates,
     rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^\\.\\./\\.\\./',
+              message: 'Use the @app/* or @env/* alias for imports that climb two or more levels.',
+            },
+          ],
+        },
+      ],
       '@angular-eslint/directive-selector': [
         'error',
         {
@@ -36,8 +47,30 @@ module.exports = defineConfig([
     },
   },
   {
+    // Spartan "helm" components are generated into this folder and use the `hlm` prefix.
+    files: ['src/app/shared/components/ui/**/*.ts'],
+    rules: {
+      '@angular-eslint/directive-selector': [
+        'error',
+        { type: 'attribute', prefix: 'hlm', style: 'camelCase' },
+      ],
+      '@angular-eslint/component-selector': [
+        'error',
+        { type: 'element', prefix: 'hlm', style: 'kebab-case' },
+      ],
+      '@typescript-eslint/consistent-type-definitions': 'off',
+      '@angular-eslint/no-input-rename': 'off',
+      'no-restricted-imports': 'off',
+    },
+  },
+  {
     files: ['**/*.html'],
     extends: [angular.configs.templateRecommended, angular.configs.templateAccessibility],
-    rules: {},
+    rules: {
+      '@angular-eslint/template/label-has-associated-control': [
+        'error',
+        { controlComponents: ['hlm-checkbox', 'hlm-radio'] },
+      ],
+    },
   },
 ]);

@@ -62,7 +62,7 @@ One template, one real file, one exception:
   - **`CLIENT_HOST`** / **`CLIENT_PORT`**: the server-side CORS allowed-origin is built
     from these as `http://CLIENT_HOST:CLIENT_PORT` and passed to `flask-cors`. Only
     actually matters for local dev (`http://localhost:8002`, a different origin from
-    `flask run`'s `:5000`) — inside
+    a local `flask run --port 8001`, the same `SERVER_PORT` Compose uses) — inside
     Docker Compose, the browser only ever talks to nginx's single origin (see the
     `client` service above), so CORS is a no-op there regardless of what this is set to.
   - **`MAX_UPLOAD_MB`**: largest document upload, in MB (default 10) — the size of the

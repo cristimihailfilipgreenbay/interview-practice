@@ -18,7 +18,7 @@ reasoning behind decisions only gestured at here.
   empty stubs, swapped by `angular.json`'s `fileReplacements` per build config) — **not** an
   OS-level env var, since Angular ships as a static build with no `process.env` at runtime
   in the browser. `environment.development.ts` points at the local Flask dev server (a
-  different origin — `http://localhost:5000/api`, hitting real cross-origin CORS);
+  different origin — `http://localhost:8001/api`, i.e. `SERVER_PORT`, hitting real cross-origin CORS);
   `environment.ts` (production, used in the Docker build) is just `/api` — a relative path,
   same-origin behind nginx's reverse proxy (see `deployment.md`), where CORS doesn't
   actually apply at all.
@@ -28,8 +28,7 @@ reasoning behind decisions only gestured at here.
   every OpenRouter call and the security guard. The OpenRouter API key and all prompt
   construction stay server-side — the client never sees a system prompt or an API key. A
   **Pydantic v2** validation layer sits between the API routes and the app's internals —
-  parses/validates every request body (and the JSONB-shaped fields: `evaluation_criteria`,
-  `star_breakdown`, `score_breakdown`, `phase_settings_override`) before it reaches
+  parses/validates every request body (and the LLM replies) before it reaches
   business logic. Chosen over Marshmallow for tighter type-hint integration with the
   project's existing mypy-strict setup, and because its `model_validator` mechanism is the
   natural place to enforce cross-field invariants like ADR 0009's judge-model exclusion
@@ -124,18 +123,30 @@ The assignment requires at least 5 system prompts using different prompting tech
 Each one corresponds to a distinct backend phase of the interview lifecycle, rather than to
 5 separate standalone tools:
 
-All five run on **`gpt-5-mini`** by default (selectable among the assignment's 3 allowed
-OpenRouter chat models via Preferences), using 5 deliberately distinct techniques:
+All five run on **`gpt-5-mini`** by default (selectable among the allowed OpenRouter
+chat models via Preferences), using 5 deliberately distinct techniques:
 
-1. **JD/CV analysis** (runs on Create Interview submit) — extracts skills, likely topics,
-   and a domain suggestion from the job description and/or CV text. Technique: **zero-shot**
-   extraction with a structured JSON output contract. Plain context-injection, not RAG —
+1. **JD/CV analysis** (requested by the client right after a Document is
+   uploaded, via `PUT /api/documents/:id/analysis`, using the default model; Create Interview
+   runs it at submit only for a Document with no analysis, or when the Interview overrides
+   the `jd_analysis` model) — one small call **per Document**
+   (job description, CV, cover letter; run in parallel at submit): extracts skills, likely topics,
+   the role's domain (job description / CV) and the employer's name (job description /
+   cover letter). The result is stored as that Document's `DocumentAnalysis` and reused by
+   every later Interview that uses the Document, unless that Interview's `jd_analysis`
+   model differs, in which case it is re-run and overwritten — see
+   [ADR 0012](./adr/0012-document-analysis-cached-per-document-and-model.md). The
+   Interview's `domain` comes from the job description's (else the CV's) analysis.
+   Technique: **zero-shot** extraction with a structured JSON output contract. Plain context-injection, not RAG —
    see [ADR 0004](./adr/0004-job-description-context-is-not-rag.md).
 2. **Question-plan & persona generation** — produces the interviewer persona (name, job
    title, tone, and a knowledge scope/backstory shaped by `interviewer_role`), the question
    plan (skewed
-   technical vs. behavioral by `interview_type`), and a structured **evaluation rubric**
-   (technical + behavioral criteria, `Interview.evaluation_criteria`) — the assignment's
+   technical vs. behavioral by `interview_type`: at least 70% of the questions are of the
+   interview's own type, and exactly `target_question_count` of them are planned), and a
+   structured **evaluation rubric**
+   (technical + behavioral criteria, stored as `EvaluationCriterion` rows; the question plan
+   as `InterviewQuestion` rows) — the assignment's
    "generate interviewer guidelines" optional task, folded into this same call rather than a
    separate one. Seeded by `difficulty`, `domain`, `seniority`, `interview_type`,
    `interviewer_role`, `company_name`, and the JD/CV analysis output. Technique:
@@ -144,6 +155,13 @@ OpenRouter chat models via Preferences), using 5 deliberately distinct technique
    actually distinguishes it from phase 4's few-shot prompt. The rubric is dev/interviewer
    -side only — not shown to the candidate — and is later fed into phase 5 as grounding so
    the STAR evaluation is judged against the same criteria the plan was built around.
+   The model returns JSON with the persona (`name`, `title`, `backstory`), the questions
+   and the criteria, validated before anything is stored; an empty or incomplete plan fails
+   the request with `502` and creates nothing. It also returns the Interview's `domain`,
+   but only when no analysed Document supplied one. The backstory is stored as
+   `Interview.persona_backstory`. The persona's `tone` is an input chosen by the candidate,
+   not generated. The model comes from the Interview's `question_plan` setting (default
+   `gpt-5-mini`).
 3. **Live interviewer conversation** (one call per Q&A turn) — role-plays the generated
    persona, asks the next question, and decides pacing/follow-ups and whether it has
    gathered enough signal to end the Q&A phase early (bounded above by
@@ -157,7 +175,7 @@ OpenRouter chat models via Preferences), using 5 deliberately distinct technique
    matching the assignment's own "questions to ask the interviewer" starter idea. Technique:
    **few-shot**, using example good closing questions as guidance.
 5. **STAR evaluation** — scores the full transcript (both phases) against the STAR
-   framework and `Interview.evaluation_criteria` (phase 2's rubric, weighted toward
+   framework and the Interview's `EvaluationCriterion` rows (phase 2's rubric, weighted toward
    whichever half — technical or behavioral — matches `interview_type`), and produces a
    verdict
    (`hire`/`no_hire`), reasoning, and improvement suggestions. Technique:
@@ -205,19 +223,20 @@ A collapsed "advanced settings" section on Create Interview lets the candidate o
 settings **per phase**, for just that Interview. Anything not overridden keeps using the
 global Preferences defaults (`gpt-5-mini`, Preferences' temperature, etc.).
 
-- Stored as `Interview.phase_settings_override` (jsonb), keyed by phase — `jd_analysis`,
-  `question_plan`, `live_conversation`, `ask_back`, `evaluation`, plus `interviewer_review`
-  (see below) — each an optional object of `{model, temperature, max_tokens,
-  reasoning_effort}`. Any field, or any phase key, that's absent falls back to the global
-  Preferences default. One JSONB column rather than a column per phase per setting, to
-  avoid a wide, mostly-null `interviews` table.
-- **Model choice**: for the 5 candidate-facing phases, all 3 assignment-allowed models
-  (`gpt-5-mini`, `gpt-5-nano`, `gpt-5`). The picker mechanism is already generic per-phase,
-  so there was no remaining reason to keep it artificially restricted to 2.
+- Stored as `InterviewPhaseSettings` rows (`interview_phase_settings`), one per overridden
+  phase — `jd_analysis`, `question_plan`, `live_conversation`, `ask_back`, `evaluation`,
+  plus `interviewer_review` (see below) — each with optional `{model, temperature,
+  max_tokens, reasoning_effort}` columns. Any field, or any phase with no row, falls back
+  to the global Preferences default. A child table rather than a column per phase per
+  setting, which would be a wide, mostly-null `interviews` table; the API still takes and
+  returns the nested `phaseSettingsOverride` object.
+- **Model choice**: for the 5 candidate-facing phases, all allowed models (`gpt-5-mini`,
+  `gpt-5-nano`, `gpt-4o-mini`, `typesafe/jev-1.13`). The picker mechanism is already generic
+  per-phase, so there was no remaining reason to keep it artificially restricted.
 - **`interviewer_review`'s model choice is deliberately a different, narrower set**:
-  `google/gemini-2.5-flash` (the default — see below), `gpt-5-mini`, `gpt-5-nano`. No full
-  `gpt-5` here — these two OpenAI options exist as quick, cheap experimentation, not an
-  expected path; Gemini stays the recommendation. This is intentionally asymmetric with the
+  `google/gemini-2.5-flash` (the default — see below), `gpt-5-mini`, `gpt-5-nano`,
+  `typesafe/jev-1.13`. No `gpt-4o-mini` here — the OpenAI options exist as quick, cheap
+  experimentation, not an expected path; Gemini stays the recommendation. This is intentionally asymmetric with the
   other 5 phases, not an oversight: the judge's whole point is being a different vendor
   from the interview model, so its override set centers on that instead of mirroring the
   candidate-facing phases' allow-list.
@@ -271,7 +290,7 @@ regenerated together; the score isn't derived separately from the narrative or v
   Overwrites the previous score/summary each time, so it always reflects the full picture
   so far rather than accumulating stale commentary.
 - **Inputs**: every completed stage's `Evaluation` under that `JobApplication` (`reasoning`,
-  `improvement_suggestions`, `star_breakdown`, plus the `evaluation_criteria` each stage was
+  `improvement_suggestions`, the STAR fields, plus the evaluation criteria each stage was
   judged against) — deliberately not raw transcripts, since the comparison is about
   assessed performance, not re-reading every conversation.
 - **Display**: the `/applications/:id` Application Overview page, reachable from the
@@ -301,7 +320,15 @@ reaching OpenRouter — not per-endpoint checks scattered across routes. Applies
 - Ask-back questions
 
 Checks include input length limits, prompt-injection pattern detection, and off-topic/abuse
-detection, optionally backed by a cheap classification call. Being one reusable module makes
+detection, optionally backed by a cheap classification call. **Built so far**
+(`app/llm/guard.py`): length limits (checked first, so the scan is bounded) and
+prompt-injection pattern detection that also catches common disguises (invisible
+characters, accents, look-alike letters, leetspeak, spaced-out letters); a rejection is a
+`422 INPUT_REJECTED`. Wired into Document upload and Create Interview; the chat and
+ask-back endpoints should call it when they are built. Off-topic/abuse detection and the
+classification call are not built. Alongside it, `fence()` wraps untrusted text in
+tags with every angle bracket escaped, so the prompt can mark it as data. Bare
+"developer mode" is deliberately allowed (mobile developers write about it). Being one reusable module makes
 it independently testable and gives a single place to reason about coverage — important
 since this is a required part of the assignment, not optional.
 
@@ -313,7 +340,7 @@ itself stays simple for a non-technical user.
 
 ### Model & Prompts tab
 
-- **Interview model** selection (from the 3 allowed OpenRouter chat models, default
+- **Interview model** selection (from the allowed OpenRouter chat models, default
   `gpt-5-mini`) — used for all 5 candidate-facing phases above: JD/CV analysis,
   question-plan/persona generation, live conversation, ask-back suggestions, and STAR
   evaluation
@@ -398,7 +425,8 @@ a persisted Docker volume in deployment — see `deployment.md`.
 ```
 Create Interview
   → security guard checks input
-  → JD/CV analysis prompt
+  → JD/CV analysis prompt (per Document; skipped for Documents already analysed by the
+    Interview's `jd_analysis` model — normally done at upload time)
   → question-plan & persona generation prompt
   → persona image generation (stored)
   → Interview row created (status = in_progress)

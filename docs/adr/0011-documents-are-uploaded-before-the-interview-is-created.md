@@ -11,10 +11,13 @@ over the size limit) would only be reported at submit, after the candidate fille
 Uploading first also explains the `saved` flag: a `Document` row always exists before the
 Interview that points at it.
 
-The cost, accepted for the prototype: a candidate who uploads a file and then abandons the
-form leaves behind an unsaved, unreferenced `Document` (row, `raw_text`, and file on disk)
+Removing the uploaded file in the form deletes the `Document` straight away
+(`DELETE /api/documents/:id`, fire-and-forget). The cost, accepted for the prototype, is the
+other case: a candidate who uploads a file and then abandons the form (closes the tab,
+navigates away) leaves behind an unreferenced `Document` (row, `raw_text`, and file on disk)
 that nothing deletes, and the client can't be relied on to clean up on page exit (same
-reasoning as [ADR 0006](./0006-lazy-staleness-detection-not-a-background-job.md)). If it
+reasoning as [ADR 0006](./0006-lazy-staleness-detection-not-a-background-job.md)). Whether it
+is `saved` depends on the "save for later" checkbox. If it
 starts to matter, the fix is a lazy cleanup that removes `saved = false` Documents older
 than a grace period (e.g. 24 hours) and not referenced by any `Interview` or
 `JobApplication` — an unsaved Document that an Interview references is the normal one-off

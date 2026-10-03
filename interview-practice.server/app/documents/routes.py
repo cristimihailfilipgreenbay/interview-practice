@@ -11,7 +11,7 @@ from app.documents.schemas import (
     DocumentCreateForm,
     DocumentListQuery,
     DocumentPublic,
-    DocumentRename,
+    DocumentUpdate,
 )
 from app.errors.exceptions import (
     BadRequestError,
@@ -20,6 +20,7 @@ from app.errors.exceptions import (
     UnprocessableFileError,
 )
 from app.extensions import db
+from app.llm.guard import MAX_DOCUMENT_CHARS, check_text
 from app.models import Document
 from app.paths import instance_dir
 from app.serialization import to_json, to_json_list
@@ -76,6 +77,8 @@ def create_document() -> ResponseReturnValue:
         raw_text = extract_pdf_text(data)
     except PdfParseError as exc:
         raise UnprocessableFileError(str(exc)) from exc
+    # the text goes into prompts later, so vet it before anything is stored
+    check_text(raw_text, max_length=MAX_DOCUMENT_CHARS)
 
     # save locally
     relative_path = UPLOAD_SUBDIR / f"{uuid.uuid4()}.pdf"
@@ -97,7 +100,7 @@ def create_document() -> ResponseReturnValue:
         db.session.commit()
     except Exception:
         db.session.rollback()
-        absolute_path.unlink(missing_ok=True) # cleanup
+        absolute_path.unlink(missing_ok=True)  # cleanup
         raise
 
     return jsonify(to_json(DocumentPublic, document)), 201
@@ -118,10 +121,15 @@ def download_document(document_id: uuid.UUID) -> ResponseReturnValue:
 
 
 @documents_bp.patch("/<uuid:document_id>")
-def rename_document(document_id: uuid.UUID) -> ResponseReturnValue:
-    body = DocumentRename.model_validate(request.get_json(silent=True) or {})
+def update_document(document_id: uuid.UUID) -> ResponseReturnValue:
+    body = DocumentUpdate.model_validate(request.get_json(silent=True) or {})
+    if body.name is None and body.saved is None:
+        raise BadRequestError("Provide a name or a saved value to update.")
     document = _get_document_or_404(document_id)
-    document.name = body.name
+    if body.name is not None:
+        document.name = body.name
+    if body.saved is not None:
+        document.saved = body.saved
     db.session.commit()
     return jsonify(to_json(DocumentPublic, document))
 

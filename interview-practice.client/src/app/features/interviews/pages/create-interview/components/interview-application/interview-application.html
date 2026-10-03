@@ -1,0 +1,103 @@
+<section
+  [(expanded)]="expanded"
+  aria-labelledby="application-heading"
+  class="pb-0"
+  hlmCard
+  hlmCollapsible
+>
+  <div hlmCardHeader>
+    <h3 hlmCardTitle id="application-heading">
+      <button
+        class="group/trigger flex w-full cursor-pointer items-center gap-2 text-left"
+        hlmCollapsibleTrigger
+      >
+        <ng-icon class="mb-0.5" name="lucideLayers" />
+        Application
+        <ng-icon
+          class="ml-auto transition-transform duration-300 group-data-[state=open]/trigger:rotate-180"
+          name="lucideChevronDown"
+        />
+      </button>
+    </h3>
+    <p hlmCardDescription>Practice on its own, or add a stage to an existing application.</p>
+  </div>
+
+  <div hlmCollapsibleContent>
+    <div class="mb-5" hlmCardContent>
+      <fieldset hlmFieldSet>
+        <legend class="sr-only" hlmFieldLegend variant="label">Application</legend>
+        <hlm-radio-group
+          (valueChange)="onModeChange($event)"
+          [formField]="interviewForm().applicationMode"
+          class="gap-2"
+        >
+          <div hlmField orientation="horizontal">
+            <hlm-radio inputId="application-standalone" value="standalone">
+              <hlm-radio-indicator indicator />
+            </hlm-radio>
+            <label class="font-normal" for="application-standalone" hlmFieldLabel>
+              Standalone interview
+            </label>
+          </div>
+
+          <div hlmField orientation="horizontal">
+            <hlm-radio
+              [disabled]="existingUnavailable()"
+              inputId="application-existing"
+              value="existing"
+            >
+              <hlm-radio-indicator indicator />
+            </hlm-radio>
+            <label class="flex-none! font-normal" for="application-existing" hlmFieldLabel>
+              Next stage of an existing application
+              @if (existingHint(); as hint) {
+                <span class="text-muted-foreground">({{ hint }})</span>
+              }
+            </label>
+            <div
+              [attr.inert]="existing() ? null : ''"
+              [class]="
+                existing()
+                  ? 'translate-x-0 opacity-100'
+                  : 'pointer-events-none -translate-x-3 opacity-0'
+              "
+              class="min-w-0 flex-1 transition-[opacity,translate] duration-300 ease-out"
+            >
+              <hlm-select
+                (valueChange)="onApplicationChange($event)"
+                [disabled]="selectDisabled()"
+                [itemToString]="applicationName"
+                [value]="interviewForm().applicationId().value()"
+                class="ml-2"
+              >
+                <hlm-select-trigger class="w-80 data-[size=default]:h-7">
+                  <hlm-select-value [placeholder]="placeholder()" />
+                </hlm-select-trigger>
+                <hlm-select-content *hlmSelectPortal>
+                  @for (application of applications.value() ?? []; track application.id) {
+                    <hlm-select-item [value]="application.id">
+                      {{ application.companyName }} — {{ application.jobTitle }}
+                    </hlm-select-item>
+                  }
+                </hlm-select-content>
+              </hlm-select>
+              <hlm-field-error
+                [errors]="interviewForm().applicationId().errors()"
+                [visible]="interviewForm().applicationId().touched()"
+              />
+            </div>
+          </div>
+
+          <div hlmField orientation="horizontal">
+            <hlm-radio inputId="application-new" value="new">
+              <hlm-radio-indicator indicator />
+            </hlm-radio>
+            <label class="font-normal" for="application-new" hlmFieldLabel>
+              Start a new application
+            </label>
+          </div>
+        </hlm-radio-group>
+      </fieldset>
+    </div>
+  </div>
+</section>

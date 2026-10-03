@@ -10,11 +10,7 @@
       "Bash(nom run *)",
       "Read"
     ],
-    "deny": [
-      "Read(./src/environments/environment.ts)",
-      "Bash(git commit *)",
-      "Bash(git push *)"
-    ]
+    "deny": ["Read(./src/environments/environment.ts)", "Bash(git commit *)", "Bash(git push *)"]
   },
   "hooks": {
     "PostToolUse": [

@@ -15,8 +15,8 @@ npm test                                    # ng test: Vitest via @angular/build
 npx ng test --watch=false                   # single run
 npx ng test --include src/app/app.spec.ts   # run one spec file
 npm run lint                                # ng lint: eslint over src/**/*.ts and src/**/*.html
-npx prettier --write .                      # format
-npx prettier --check .                      # check formatting without writing
+npm run format                              # prettier --write .
+npm run format:check                        # prettier --check . (no writes)
 ```
 
 No e2e framework is set up.
@@ -38,6 +38,7 @@ No e2e framework is set up.
 - `Dockerfile`/`nginx.conf`/`.dockerignore` exist for the Docker Compose deployment — see
   `../docs/deployment.md`.
 - Tests use Vitest globals (`describe`/`it`/`expect` without imports, via `vitest/globals` in `tsconfig.spec.json`) together with Angular `TestBed`. Since there's no zone, use `await fixture.whenStable()` before asserting on the DOM, not `fakeAsync`/`tick`.
+- Path aliases (`tsconfig.json`): `@app/*` → `src/app/*`, `@env/*` → `src/environments/*`. Use them for imports that would climb two or more levels (`../../`); same-folder and single-level relative imports stay relative. The Spartan code in `src/app/shared/components/ui/` keeps its own `@spartan-ng/helm/*` aliases.
 - TypeScript is strict (`strictInjectionParameters`, `strictInputAccessModifiers`, `noPropertyAccessFromIndexSignature`, etc.).
 - Prettier: `printWidth: 100`, single quotes, Angular parser for `.html`. `.prettierignore` excludes build output, `node_modules`, and `package-lock.json`.
 - ESLint (`eslint.config.js`, flat config): `@eslint/js` + `typescript-eslint` (recommended + stylistic) + `angular-eslint` (`tsRecommended` for `.ts`, `templateRecommended` + `templateAccessibility` for `.html`). `eslint-plugin-prettier/recommended` is the last extend on the `.ts` block, so Prettier violations surface as `prettier/prettier` ESLint errors and conflicting stylistic rules are disabled; `.html` formatting is handled by Prettier directly (not linted through the prettier plugin, since templates use a different parser). Component/directive selectors are enforced via `@angular-eslint/component-selector` and `@angular-eslint/directive-selector` (prefix `app`).

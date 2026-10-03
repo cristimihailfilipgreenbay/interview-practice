@@ -1,12 +1,11 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { HlmToasterImports } from '@spartan-ng/helm/sonner';
+import { Topbar } from './core/layout/topbar/topbar';
 
 @Component({
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, Topbar, HlmToasterImports],
   selector: 'app-root',
-  styleUrl: './app.scss',
   templateUrl: './app.html',
 })
-export class App {
-  protected readonly title = signal('interview-practice.client');
-}
+export class App {}

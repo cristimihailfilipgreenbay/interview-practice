@@ -19,6 +19,16 @@ and file download (binary response) endpoints, called out explicitly below. No
 authentication (see [ADR 0002](./adr/0002-single-user-prototype-no-auth.md)) — every route
 is open.
 
+## JSON casing
+
+JSON keys are **camelCase** on the wire; Python code and the database stay snake_case. The
+conversion happens once, on the server: every Pydantic request/response schema inherits a
+shared `ApiModel` base (`alias_generator=to_camel`), so `source_filename` is sent as
+`sourceFilename` and incoming `camelCase` is read back into snake_case fields. Only *keys*
+are converted. Enum values (`technical_screener`, `in_progress`, `cover_letter`), error
+`code`s (`FILE_TOO_LARGE`) and query-string values stay as they are. The Angular client
+uses the JSON as-is.
+
 ## Error contract
 
 Every error response: `{"error": {"code": "<SNAKE_CASE_CODE>", "message": "<human-readable>", "details"?: {...}}}`.
@@ -30,6 +40,10 @@ Every error response: `{"error": {"code": "<SNAKE_CASE_CODE>", "message": "<huma
 | 413 | Upload exceeds the size limit (`MAX_UPLOAD_MB`, default 10) | `FILE_TOO_LARGE` |
 | 422 | Well-formed request, but the uploaded file can't be used (not a readable PDF, encrypted, or no extractable text) | `UNPROCESSABLE_FILE` |
 | 409 | Request is well-formed but violates a business rule/current state | `JUDGE_MODEL_COLLISION`, `INTERVIEW_ALREADY_ENDED` |
+| 422 | The security guard (or the provider's moderation) refused the text: it looks like prompt injection or is over its length limit. `details` = `{reason}` (plus `field`, the request field, for `POST /api/interviews`) with `reason` one of `prompt_injection` (+ `excerpt`, the matched wording, so the candidate can find it in a long document), `too_long` (+ `maxLength`), `moderation`; the message never names the rule that matched. Applies to `POST /api/documents` (the extracted text, max 50,000 characters) and `POST /api/interviews` (the free-text fields). Nothing is persisted and no interview state changes, so the client keeps the user's input and lets them edit and resend | `INPUT_REJECTED` |
+| 502 | The model provider failed, was unreachable, or returned an unusable/contract-breaking response | `LLM_UPSTREAM_ERROR` |
+| 503 | The provider can't serve us right now (rate limit, credits, key); `details.retryAfterSeconds` when known | `LLM_UNAVAILABLE` |
+| 504 | The provider took too long | `LLM_TIMEOUT` |
 | 500 | Unexpected server error | `INTERNAL_ERROR` (no internals leaked in `message`) |
 
 ## `interviews` blueprint — `/api/interviews`
@@ -40,37 +54,41 @@ Create Interview submission. Request:
 
 ```jsonc
 {
-  "job_title": "string",
-  "company_name": "string?",
+  "jobTitle": "string",
+  "companyName": "string?",
   "seniority": "string",
   "difficulty": "easy" | "medium" | "hard",
-  "tone": "string?",              // overrides difficulty's cascaded default
-  "interview_type": "string?",    // overrides interviewer_role's cascaded default
-  "interviewer_role": "recruiter" | "technical_screener" | "hr" | "hiring_manager",
-  "response_style": "concise" | "detailed",  // default "concise"
-  "coaching_helpers_enabled": false,
-  "job_description": { "document_id": "uuid" } | null,
-  "cv": { "document_id": "uuid" } | null,
-  "job_application": { "id": "uuid" } | { "create_new": true } | null,  // null = standalone
-  "phase_settings_override": { /* see database-schema.md — optional, includes interviewer_review */ }
+  "targetQuestionCount": "integer",   // 1–30; the client seeds it from difficulty, then sends the final value
+  "tone": "strict" | "neutral" | "friendly",  // the client seeds it from difficulty / interviewerRole (last pick wins), then sends the final value
+  "interviewType": "string",          // the client seeds it from difficulty / interviewerRole (last pick wins), then sends the final value
+  "interviewerRole": "recruiter" | "technical_screener" | "hr" | "hiring_manager",
+  "responseStyle": "concise" | "detailed",  // the client seeds it from difficulty (hard → detailed), then sends the final value
+  "coachingHelpersEnabled": false,  // the client seeds it from difficulty (on for easy), then sends the final value
+  "jobDescriptionId": "uuid" | null,
+  "cvId": "uuid" | null,
+  "coverLetterId": "uuid" | null,
+  "jobApplication": { "id": "uuid" } | { "createNew": true } | null,  // null = standalone
+  "phaseSettingsOverride": { /* see database-schema.md, camelCased — optional, includes interviewerReview */ }
 }
 ```
 
-- `job_description`/`cv` — always a reference to an existing `Document`, never an inline
+- `jobDescriptionId`/`cvId`/`coverLetterId` — always the id of an existing `Document`, never an inline
   file: this request is plain JSON. A new file is uploaded earlier, the moment the
   candidate picks it, via `POST /api/documents` below, and the returned `id` goes here —
   see [ADR 0011](./adr/0011-documents-are-uploaded-before-the-interview-is-created.md).
   The server reads `Document.raw_text` from the database for the JD/CV analysis phase;
   the client never re-sends the file.
-- `job_application` — `null` for a fully standalone Interview (no `JobApplication` at
+- `jobApplication` — `null` for a fully standalone Interview (no `JobApplication` at
   all); `{id}` to add this Interview as the next stage of an existing one (pre-fills
-  `company_name`/`job_title`/documents from it, per `workflow.md`); `{create_new: true}`
-  creates a fresh `JobApplication` from this request's `company_name`/`job_title` and
-  attaches this Interview as its first stage.
+  `companyName`/`jobTitle`/documents from it, per `workflow.md`); `{createNew: true}`
+  creates a fresh `JobApplication` from this request's `companyName`/`jobTitle` and
+  attaches this Interview as its first stage. If `companyName` is absent, the
+  Application's company is read from the job description or cover letter (left null if
+  neither names one).
 
-Response `201`: the created `Interview` (id, `status: "in_progress"`, `persona_name`,
-`persona_title`, `persona_image_path` as a servable URL, `target_question_count`, etc.) —
-**not** `evaluation_criteria`, which stays hidden from the candidate.
+Response `201`: the created `Interview` (id, `status: "in_progress"`, `personaName`,
+`personaTitle`, `personaImagePath` as a servable URL, `targetQuestionCount`, etc.) —
+**not** the question plan or the evaluation criteria, which stay hidden from the candidate.
 
 **Open concern, not yet resolved**: this call runs phases 1 (JD/CV analysis), 2
 (question-plan/persona generation), and persona image generation sequentially before
@@ -88,7 +106,7 @@ or resuming one already in progress.
 Candidate submits a reply during the Q&A or ask-back phase. Request: `{"content": "string"}`.
 
 Response: the stored candidate `Message`, plus the next interviewer `Message` (with
-`helper_text` when coaching helpers are on) generated in the same call, the current
+`helperText` when coaching helpers are on) generated in the same call, the current
 `phase` (`"qa"` | `"ask_back"`), and `status`. Triggers `Evaluation` +
 `InterviewerReview` server-side the moment `status` transitions to `"completed"`.
 
@@ -100,13 +118,13 @@ nothing is persisted until the candidate actually sends one via `POST .../messag
 ### `POST /api/interviews/:id/abandon`
 
 No body. The Interviewer-sidebar "Abandon interview" action. Marks `status: "abandoned"`,
-`ended_at`, and triggers `Evaluation` (`incomplete: true`) + `InterviewerReview`, same as
+`endedAt`, and triggers `Evaluation` (`incomplete: true`) + `InterviewerReview`, same as
 the natural-completion path.
 
 ### `GET /api/interviews/:id/evaluation`
 
-The `Evaluation` (Results page data): `verdict`, `reasoning`, `improvement_suggestions`,
-`star_breakdown`, `incomplete`. `404` until the Interview has ended.
+The `Evaluation` (Results page data): `verdict`, `reasoning`, `improvementSuggestions`,
+`starBreakdown`, `incomplete`. `404` until the Interview has ended.
 
 ### `GET /api/interviews/:id/interviewer-review`
 
@@ -119,7 +137,7 @@ available for the reflection/debugging use case. `404` until the Interview has e
 
 List saved Documents (`saved = true` only), newest first — backs both the Create Interview
 select-existing control and the Preferences Documents tab. Response `200`: an array of
-`{id, type, name, source_filename, saved, created_at}`. `raw_text` and `file_path` are
+`{id, type, name, sourceFilename, saved, createdAt}`. `raw_text` and `file_path` (database columns) are
 deliberately not returned (the first is large and only the LLM phases need it; the second
 is a server filesystem path). An unknown `type` value is a `400`.
 
@@ -130,22 +148,52 @@ regardless of `save` (see `domain-model.md`'s `saved` field) — parses the uplo
 server-side into `raw_text`, stores the original on local disk (`file_path`, relative to
 the Flask `instance/` folder). `name` defaults to the uploaded filename. Called as soon as
 the candidate picks a file in Create Interview (or uploads from the Preferences Documents
-tab), with `save` set from the "save this for later?" answer.
+tab). Create Interview uploads with `save: true` for a CV or cover letter and `save: false` for a
+job description; the "save for later" checkbox, shown after the upload, changes it
+through `PATCH`.
 
 **PDF only, max `MAX_UPLOAD_MB` (default 10 MB).** `400` for a missing file, a non-`.pdf` filename, or invalid
 fields; `413 FILE_TOO_LARGE` over the limit; `422 UNPROCESSABLE_FILE` if the file isn't a
 readable PDF, is encrypted, or has no text layer (scanned PDFs — there is no OCR).
 Response `201`: the created Document, same shape as the list items.
 
+### `PUT /api/documents/:id/analysis`
+
+No body. Runs phase 1 (JD/CV analysis, see `architecture.md`) on the Document and stores
+the result as its `DocumentAnalysis`, using the default `jd_analysis` model. A `PUT`
+because it is **idempotent**: if the Document already has an analysis from that model it
+answers at once, without calling the LLM.
+
+The client calls it **only right after an upload** in Create Interview, showing the
+attachment with an "Analyzing document…" indicator and keeping the Start button disabled
+meanwhile. Picking a saved Document, or an Application that pre-fills Documents, does not
+call it: those Documents were analysed when they were uploaded, and if one has no analysis
+(or the Interview overrides the `jd_analysis` model), `POST /api/interviews` analyses it at
+submit. There is no cancel and no retry: the candidate stops the analysis by removing the
+attachment, which abandons the request and deletes the Document. A failure is handled by
+who is at fault: if the Document itself is rejected (`422 INPUT_REJECTED`), the client
+deletes it and tells the candidate to use a different file; for any other failure (provider
+unavailable, timeout, network), which is not the Document's fault, the client keeps the
+Document and shows a notice, and the analysis runs again at submit. See
+[ADR 0012](./adr/0012-document-analysis-cached-per-document-and-model.md).
+
+Response `200`: `{model, domain, companyName, skills, likelyTopics}` (`domain` and
+`companyName` may be `null`). `404 NOT_FOUND` for an unknown Document; `502`/`503`/`504`
+(`LLM_UPSTREAM_ERROR`/`LLM_UNAVAILABLE`/`LLM_TIMEOUT`) when the provider fails. Abandoning
+the request is client-side only: the server finishes the call and caches the result, unless
+the Document was deleted in the meantime.
+
 ### `GET /api/documents/:id/download`
 
 Binary response (the original uploaded file), `Content-Disposition` filename from
-`source_filename`.
+`source_filename` (the stored column).
 
 ### `PATCH /api/documents/:id`
 
-`{"name": "string"}` (1–200 characters after trimming) — rename, from the Preferences
-Documents tab. Response `200`: the updated Document.
+`{"name"?: "string", "saved"?: boolean}` — at least one; `name` is 1–200 characters after
+trimming. Rename comes from the Preferences Documents tab; `saved` from the "save for later"
+checkbox in Create Interview. `400` if neither is given. Response `200`: the updated
+Document.
 
 ### `DELETE /api/documents/:id`
 
@@ -157,18 +205,22 @@ that referenced the Document are kept and just lose the link (`ON DELETE SET NUL
 
 ### `GET /api/applications`
 
-List (id, `company_name`, `job_title`, and each stage's `interviewer_role`/`status`) — backs
-the sidebar's grouped history.
+List, newest first: `id`, `companyName`, `jobTitle`, the optional documents
+`jobDescription`/`cv`/`coverLetter` — each `{id, name}` or `null`, so Create Interview can
+pre-fill a new stage and show an attached document by name even when it isn't `saved` — and
+`interviews` — each stage's `id`, `interviewerRole` and `status`, oldest first. Backs the
+sidebar's grouped history and the application select in Create Interview. Response `200`,
+an empty array when there are none.
 
 ### `GET /api/applications/:id`
 
-Application Overview page data: `company_name`, `job_title`, every stage (id,
-`interviewer_role`, `status`, link to its Results), plus `progress_score`/
-`progress_summary` once 2+ stages have an `Evaluation`.
+Application Overview page data: `companyName`, `jobTitle`, every stage (id,
+`interviewerRole`, `status`, link to its Results), plus `progressScore`/
+`progressSummary` once 2+ stages have an `Evaluation`.
 
 ### `PATCH /api/applications/:id`
 
-`{"company_name": "string", "job_title": "string"}` — sidebar context-menu rename.
+`{"companyName": "string", "jobTitle": "string"}` — sidebar context-menu rename.
 
 ### `DELETE /api/applications/:id`
 
@@ -182,13 +234,13 @@ Singleton resource, no `:id`.
 
 ### `GET /api/preferences`
 
-Current `interview_model`, `judge_model`, `temperature`, and per-phase system prompts.
+Current `interviewModel`, `judgeModel`, `temperature`, and per-phase system prompts.
 
 ### `PATCH /api/preferences`
 
 Partial update of the same. Pydantic's `model_validator` enforces
 [ADR 0009](./adr/0009-judge-model-excludes-the-interview-model.md) here — setting
-`judge_model` equal to `interview_model` fails with `409 JUDGE_MODEL_COLLISION` before
+`judgeModel` equal to `interviewModel` fails with `409 JUDGE_MODEL_COLLISION` before
 anything is saved.
 
 ## Dashboard data

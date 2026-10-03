@@ -15,3 +15,8 @@ class Config:
     # and the documents route re-checks the file itself for a clearer message.
     MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_MB", "10")) * 1024 * 1024
     MAX_CONTENT_LENGTH = MAX_UPLOAD_BYTES
+
+    OPENROUTER_BASE_URL = os.environ.get("OPENROUTER_BASE_URL")
+    OPENROUTER_API_KEY_FILE = os.environ.get("OPENROUTER_API_KEY_FILE")
+    OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
+    LLM_TIMEOUT_SECONDS = float(os.environ.get("LLM_TIMEOUT_SECONDS", "60"))

@@ -12,7 +12,17 @@ fields, types, and relationships.
 **JobApplication**:
 The real-world hiring pipeline for one company and role, grouping multiple Interviews as
 its stages.
-_Avoid_: application (bare), job, pipeline
+_Avoid_: application (bare) in prose and identifiers, job, pipeline
+
+The short form "application" is fine where brevity is the convention: URLs (`/api/applications`,
+`/applications/:id`) and user-facing copy (the "Application" section in Create Interview). Code
+and docs that name the entity itself use **JobApplication**.
+
+**ApplicationSummary**:
+The trimmed view of a JobApplication returned by `GET /api/applications`: its id, company and
+job title, its attached documents (id and name) and its stages. Not the entity itself, which
+also holds the progress score and narrative.
+_Avoid_: application summary as a name for the JobApplication itself
 
 **Interview**:
 One mock interview session representing a single stage of a hiring pipeline, optionally
@@ -41,8 +51,8 @@ _Avoid_: review (bare), judge report
 ### Interviewer & persona
 
 **Persona**:
-The generated interviewer character (name, tone, knowledge scope) that conducts an
-Interview's live conversation.
+The generated interviewer character (name, title, tone, backstory/knowledge scope) that
+conducts an Interview's live conversation.
 _Avoid_: character, avatar
 
 **Tone**:
@@ -113,9 +123,19 @@ An Evaluation's headline outcome — hire or no_hire.
 _Avoid_: decision, result
 
 **Evaluation criteria**:
-The structured technical + behavioral rubric generated with the question plan, used to
-ground an Evaluation. Never shown to the candidate.
+The technical + behavioral rubric generated with the question plan, one criterion per
+row, used to ground an Evaluation. Never shown to the candidate.
 _Avoid_: rubric, interviewer guidelines
+
+**Interview question**:
+One entry of an Interview's question plan: something the interviewer intends to ask,
+tagged technical or behavioral. Never shown to the candidate.
+_Avoid_: planned question, topic
+
+**Document analysis**:
+What phase 1 extracted from one Document (domain, employer, skills, likely topics), kept
+with the Document and reused across Interviews until a different model is chosen.
+_Avoid_: JD analysis (it covers CVs and cover letters too)
 
 **Interview model**:
 The model used for the candidate-facing pipeline, from JD/CV analysis through Evaluation.
