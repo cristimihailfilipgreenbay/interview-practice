@@ -15,6 +15,10 @@ This is a single-implicit-user prototype (see [ADR 0002](./adr/0002-single-user-
 — no `users` table exists yet; adding one later would mean adding an `owner_id` FK to
 `documents` and `interviews`.
 
+**Structured data gets columns or tables, not JSONB**, so the schema shows its shape
+(see [ADR 0012](./adr/0012-document-analysis-cached-per-document-and-model.md)). There is
+no JSONB column.
+
 ## `documents`
 
 | Column | Type | Notes |
@@ -58,7 +62,7 @@ Groups multiple `interviews` rows as stages of the same real-world hiring pipeli
 | `job_description_document_id` | `uuid`, nullable, FK → `documents.id` | |
 | `cv_document_id` | `uuid`, nullable, FK → `documents.id` | |
 | `cover_letter_document_id` | `uuid`, nullable, FK → `documents.id` | |
-| `progress_score` | `integer`, nullable | 1-5 aggregate performance-trend rating; same scale as `interviewer_reviews.score_breakdown` |
+| `progress_score` | `integer`, nullable | 1-5 aggregate performance-trend rating; same scale as the `interviewer_reviews.score_*` columns |
 | `progress_summary` | `text`, nullable | narrative accompanying `progress_score`; both regenerated together once 2+ stages have an Evaluation — see domain-model.md |
 | `created_at` | `timestamptz` | default now() |
 
@@ -74,7 +78,7 @@ Deleting a row here cascades (`ON DELETE CASCADE`) to every `interviews` row wit
 | `job_application_id` | `uuid`, nullable, FK → `job_applications.id` | nullable — a standalone Interview needs no Application |
 | `job_title` | `text` | |
 | `company_name` | `text`, nullable | optional, independent of the job description Document; lets persona/conversation/ask-back suggestions reference a real company even when no JD is uploaded |
-| `domain` | `text` | inferred by phase 1 (JD/CV analysis) at creation; never entered by the candidate |
+| `domain` | `text` | taken from the job description's (else the CV's) `document_analyses.domain` at creation; never entered by the candidate |
 | `seniority` | `text` | |
 | `difficulty` | `enum(easy, medium, hard)` | |
 | `tone` | `text` | strict / neutral / friendly (a fixed set in the client form); plain text rather than a DB enum so adding a tone needs no migration |
@@ -85,16 +89,63 @@ Deleting a row here cascades (`ON DELETE CASCADE`) to every `interviews` row wit
 | `last_activity_at` | `timestamptz` | updated on every new message; staleness timeout 30 minutes — lazily detects a stale/ungracefully-closed session and marks it `abandoned` — see domain-model.md |
 | `persona_name` | `text` | |
 | `persona_title` | `text` | job title shown alongside `persona_name`; generated in the same phase 2 call |
+| `persona_backstory` | `text` | the persona's background and knowledge scope, from the same phase 2 call; fed to the live conversation, never returned by the API |
 | `persona_image_path` | `text` | local-disk path, under the Flask app's `instance/` folder |
 | `job_description_document_id` | `uuid`, nullable, FK → `documents.id` | |
 | `cv_document_id` | `uuid`, nullable, FK → `documents.id` | |
 | `cover_letter_document_id` | `uuid`, nullable, FK → `documents.id` | |
 | `coaching_helpers_enabled` | `boolean` | set by candidate at creation; default `false` |
 | `response_style` | `enum(concise, detailed)` | default `concise`; affects phase 3 phrasing and phase 5 write-up length |
-| `evaluation_criteria` | `jsonb` | `{technical: string[], behavioral: string[]}` — see domain-model.md |
-| `phase_settings_override` | `jsonb` | keyed by phase (`jd_analysis`, `question_plan`, `live_conversation`, `ask_back`, `evaluation`, `interviewer_review`); each value optionally `{model, temperature, max_tokens, reasoning_effort}`; any omitted key/field falls back to the global Preferences default. `interviewer_review`'s model choice is a narrower set (`google/gemini-2.5-flash`/`gpt-5-mini`/`gpt-5-nano`/`typesafe/jev-1.13`) than the other 5 phases' — see architecture.md |
 | `created_at` | `timestamptz` | default now() |
 | `ended_at` | `timestamptz`, nullable | |
+
+## `interview_phase_settings`
+
+Per-Interview LLM overrides for one phase (the "advanced settings" on Create Interview).
+A row exists only for a phase the candidate overrode; no row means every setting of that
+phase uses the global Preferences default.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` PK, default `gen_random_uuid()` | |
+| `interview_id` | `uuid`, FK → `interviews.id` `ON DELETE CASCADE`, not null | |
+| `phase` | `enum(jd_analysis, question_plan, live_conversation, ask_back, evaluation, interviewer_review)` | |
+| `model` | `text`, nullable | OpenRouter model id. `interviewer_review`'s choice is a narrower set (`google/gemini-2.5-flash`/`gpt-5-mini`/`gpt-5-nano`/`typesafe/jev-1.13`) than the other 5 phases' — see architecture.md |
+| `temperature` | `double precision`, nullable | |
+| `max_tokens` | `integer`, nullable | |
+| `reasoning_effort` | `text`, nullable | |
+
+Unique: `(interview_id, phase)`. Any column left null falls back to the Preferences default.
+
+## `interview_questions`
+
+The question plan (phase 2): the ordered questions/topics the interviewer intends to
+cover. Owned by the Interview and created with it; see `domain-model.md`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` PK, default `gen_random_uuid()` | |
+| `interview_id` | `uuid`, FK → `interviews.id` `ON DELETE CASCADE`, not null | |
+| `sequence` | `integer` | order within the plan, from 1 |
+| `category` | `enum(technical, behavioral)` | |
+| `question` | `text` | |
+
+Unique: `(interview_id, sequence)`, which also serves ordered retrieval.
+
+## `evaluation_criteria`
+
+The evaluation rubric (phase 2), one row per criterion; grounds the STAR evaluation
+(phase 5). Never shown to the candidate.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` PK, default `gen_random_uuid()` | |
+| `interview_id` | `uuid`, FK → `interviews.id` `ON DELETE CASCADE`, not null | |
+| `sequence` | `integer` | order within the rubric, from 1 |
+| `category` | `enum(technical, behavioral)` | same enum as `interview_questions.category` |
+| `criterion` | `text` | e.g. "correctly reasons about time complexity tradeoffs" |
+
+Unique: `(interview_id, sequence)`.
 
 ## `messages`
 
@@ -120,7 +171,11 @@ Index: `(interview_id, sequence)` for ordered transcript retrieval.
 | `verdict` | `enum(hire, no_hire)` | |
 | `reasoning` | `text` | |
 | `improvement_suggestions` | `text` | |
-| `star_breakdown` | `jsonb` | `{situation, task, action, result: string, completeness: "strong"\|"partial"\|"weak"}` — see domain-model.md |
+| `star_situation` | `text` | short assessment of the Situation, aggregated across the whole interview |
+| `star_task` | `text` | same, for Task |
+| `star_action` | `text` | same, for Action |
+| `star_result` | `text` | same, for Result |
+| `star_completeness` | `enum(strong, partial, weak)` | overall STAR completeness rating |
 | `incomplete` | `boolean` | default false; true when interview was abandoned |
 | `model_used` | `text` | OpenRouter model id used for this evaluation; currently always `gpt-5-mini`, same as the rest of the candidate pipeline (see architecture.md) |
 | `created_at` | `timestamptz` | default now() |
@@ -135,7 +190,9 @@ Dev-facing "LLM-as-judge" assessment of the AI interviewer's own conduct, distin
 | `id` | `uuid` PK, default `gen_random_uuid()` | |
 | `interview_id` | FK → `interviews.id`, unique, not null | one-to-one |
 | `judge_model` | `text` | OpenRouter model id used; default `google/gemini-2.5-flash` |
-| `score_breakdown` | `jsonb` | `{question_relevance, persona_consistency, pacing: 1-5}` — see domain-model.md |
+| `score_question_relevance` | `smallint` | 1-5 (`CHECK`) |
+| `score_persona_consistency` | `smallint` | 1-5 (`CHECK`) |
+| `score_pacing` | `smallint` | 1-5 (`CHECK`) |
 | `reasoning` | `text` | |
 | `created_at` | `timestamptz` | default now() |
 
@@ -150,7 +207,13 @@ Dev-facing "LLM-as-judge" assessment of the AI interviewer's own conduct, distin
   reference the same saved job description)
 - `documents.id` ← `interviews.cv_document_id` (nullable, same pattern)
 - `documents.id` ← `interviews.cover_letter_document_id` (nullable, same pattern)
+- `documents.id` ← `document_analyses.document_id` (one document, at most one analysis;
+  deleting the document deletes it)
 - `interviews.id` ← `messages.interview_id` (one interview, many messages)
+- `interviews.id` ← `interview_phase_settings.interview_id` (one interview, at most one
+  row per phase)
+- `interviews.id` ← `interview_questions.interview_id` (one interview, many planned questions)
+- `interviews.id` ← `evaluation_criteria.interview_id` (one interview, many criteria)
 - `interviews.id` ← `evaluations.interview_id` (one interview, at most one evaluation)
 - `interviews.id` ← `interviewer_reviews.interview_id` (one interview, at most one
   interviewer review)

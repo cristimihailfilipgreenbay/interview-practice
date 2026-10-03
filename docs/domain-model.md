@@ -79,7 +79,7 @@ header is also the click target into the `/applications/:id` Application Overvie
 - `cover_letter_document_id`: optional FK → Document (`type = cover_letter`)
 - `progress_score`: nullable integer, 1-5 — an aggregate performance-trend rating across
   this Application's completed Interview stages, same scale as
-  `InterviewerReview.score_breakdown` for consistency. Generated together with, and always
+  the `InterviewerReview` scores for consistency. Generated together with, and always
   regenerated alongside, `progress_summary` below — the two are one feature's output, not
   independently updatable.
 - `progress_summary`: nullable text — the narrative accompanying `progress_score` (e.g.
@@ -106,9 +106,10 @@ One mock interview session, from creation through evaluation.
   generation (phase 2), the live conversation (phase 3), and — directly matching the
   assignment's own "questions to ask the interviewer" starter idea, which explicitly wants
   a company name — the ask-back suggestions (phase 4)
-- `domain`: inferred by phase 1 (JD/CV analysis) at creation from `job_title` and the JD/CV
-  text (e.g. "Software Engineer" → "Software"); not a form field, so the candidate never
-  has to categorize their own role. Stored on the Interview and fed to the later prompts
+- `domain`: taken at creation from the job description's `DocumentAnalysis` (else the
+  CV's), e.g. "backend engineering"; with no analysed document, phase 2 supplies it from
+  `job_title`/`seniority`. Not a form field, so the candidate never has to categorize their
+  own role. Stored on the Interview and fed to the later prompts
 - `seniority`: e.g. junior / mid / senior
 - `difficulty`: easy | medium | hard — a *preset* that seeds `target_question_count`, `tone`,
   `interview_type`, `response_style`, `coaching_helpers_enabled` and question complexity (the client applies the first five). Each of those remains independently editable after the preset is
@@ -119,7 +120,7 @@ One mock interview session, from creation through evaluation.
   `difficulty` and `interviewer_role` (last pick wins), independently overridable
 - `interview_type`: `technical` | `behavioral` (initial set, plain text like `tone` for
   future extensibility, e.g. a later "mixed") — skews the question plan and which half of
-  `evaluation_criteria` carries more weight at evaluation time
+  the `EvaluationCriterion` rows of each category carry more weight at evaluation time
 - `interviewer_role`: `recruiter` | `technical_screener` | `hr` | `hiring_manager` (initial set, same
   extensible-text treatment as `tone`) — who the persona *is*, not just their tone:
   - `recruiter` — first-contact screen; shallow technical/company knowledge, broad
@@ -170,6 +171,11 @@ One mock interview session, from creation through evaluation.
 - `persona_title`: generated job title string shown alongside the name (e.g. "Talent
   Acquisition Partner" for a `recruiter`, "Staff Engineer" for a `hiring_manager`) —
   produced by the same phase 2 call as `persona_name`, not a separate generation step
+- `persona_backstory`: generated text (3-5 sentences) — the persona's background and
+  knowledge scope (what they know well and what they don't), shaped by `interviewer_role`.
+  Produced by the same phase 2 call and stored so the live conversation (phase 3) keeps the
+  persona consistent every turn, and so the judge can score persona consistency. Never
+  shown to the candidate
 - `persona_image_path`: local-disk path to the generated portrait image, under the Flask
   app's `instance/` folder (see `architecture.md` — generated once at creation, stored, not
   regenerated)
@@ -180,18 +186,47 @@ One mock interview session, from creation through evaluation.
   Q&A-phase questions come with a coaching-hint card (see `architecture.md`)
 - `response_style`: `concise` | `detailed`, default `concise` — affects the live
   interviewer's phrasing (phase 3) and the evaluation write-up's length/depth (phase 5)
-- `evaluation_criteria`: `{ technical: string[], behavioral: string[] }` — flat arrays of
-  criterion bullets (e.g. "correctly reasons about time complexity tradeoffs"), generated
-  alongside the question plan (phase 2), used to ground the STAR evaluation (phase 5); not
-  shown to the candidate — see `architecture.md`. The behavioral bucket explicitly includes
-  a self-awareness/coachability signal — *how* the candidate talks about a past failure or
-  weakness (ownership, growth mindset), not just whether their STAR story is complete —
-  since real interviewers weigh this as much as the story itself
-- `phase_settings_override`: per-phase advanced-settings overrides (model/temperature/max
-  tokens/reasoning effort), one optional override object per phase across all 6 phases
-  (the 5 candidate-facing ones plus `interviewer_review`); see `architecture.md` for the
-  exact shape and default-fallback behavior
+- `phase_settings`: the per-phase advanced-settings overrides, as `InterviewPhaseSettings`
+  rows (below)
 - `created_at`, `ended_at`
+
+## InterviewPhaseSettings
+
+One phase's LLM overrides for one Interview — the Create Interview "advanced settings".
+Belongs to exactly one Interview; a row exists only for a phase the candidate overrode.
+
+- `interview_id`: FK → Interview
+- `phase`: `jd_analysis` | `question_plan` | `live_conversation` | `ask_back` |
+  `evaluation` | `interviewer_review` (the 5 candidate-facing phases plus the judge)
+- `model`, `temperature`, `max_tokens`, `reasoning_effort`: each nullable; a null field
+  falls back to the global Preferences default. See `architecture.md` for the allowed
+  models and the judge-model rule.
+
+## InterviewQuestion
+
+One entry of the question plan generated in phase 2: what the interviewer intends to ask
+or cover. Belongs to exactly one Interview (created with it, deleted with it) and is not
+shown to the candidate.
+
+- `interview_id`: FK → Interview
+- `sequence`: order within the plan, from 1
+- `category`: `technical` | `behavioral` — the plan is skewed between the two by
+  `Interview.interview_type`
+- `question`: text
+
+## EvaluationCriterion
+
+One bullet of the Interview's evaluation criteria (the rubric), generated alongside the
+question plan in phase 2 and used to ground the STAR evaluation (phase 5). Belongs to
+exactly one Interview; not shown to the candidate. The `behavioral` criteria explicitly
+include a self-awareness/coachability signal — *how* the candidate talks about a past
+failure or weakness (ownership, growth mindset), not just whether their STAR story is
+complete — since real interviewers weigh this as much as the story itself.
+
+- `interview_id`: FK → Interview
+- `sequence`: order within the rubric, from 1
+- `category`: `technical` | `behavioral`
+- `criterion`: text, e.g. "correctly reasons about time complexity tradeoffs"
 
 ## Message
 
@@ -215,9 +250,9 @@ The outcome of an Interview. One-to-one with Interview, created once the session
 - `verdict`: `hire` | `no_hire`
 - `reasoning`: explanation for the verdict
 - `improvement_suggestions`: what the candidate should work on
-- `star_breakdown`: `{ situation, task, action, result: string, completeness: "strong" |
-  "partial" | "weak" }` — one short assessment per STAR letter plus an overall completeness
-  rating, aggregated across the whole interview (not per-question)
+- `star_situation`, `star_task`, `star_action`, `star_result`: one short assessment per
+  STAR letter, aggregated across the whole interview (not per-question)
+- `star_completeness`: `strong` | `partial` | `weak` — the overall STAR completeness rating
 - `incomplete`: boolean — true when the Interview was `abandoned`; the evaluation is still
   produced, but explicitly caveated as based on a partial transcript
 - `model_used`: the OpenRouter model id actually used to produce this evaluation —
@@ -239,14 +274,14 @@ the same trigger point as `Evaluation` (session end), keeping the two symmetric.
 - `interview_id`: FK → Interview
 - `judge_model`: the OpenRouter model id used to run this review, default
   `google/gemini-2.5-flash` (selectable globally in Preferences, or overridable per
-  Interview via `phase_settings_override.interviewer_review.model`, restricted there to
+  Interview via the `interviewer_review` `InterviewPhaseSettings` row's `model`, restricted there to
   `google/gemini-2.5-flash` / `gpt-5-mini` / `gpt-5-nano` / `typesafe/jev-1.13`) — deliberately independent of
   whichever model produced this Interview's question-plan/persona generation (phase 2) and
   live conversation (phase 3): that model is always excluded from the judge-model choices,
   in both Preferences and advanced settings, so the two can never collide — see
   [ADR 0009](./adr/0009-judge-model-excludes-the-interview-model.md)
-- `score_breakdown`: `{ question_relevance, persona_consistency, pacing: 1-5 }` — simple
-  numeric scoring, not a full rubric
+- `score_question_relevance`, `score_persona_consistency`, `score_pacing`: integers 1-5 —
+  simple numeric scoring, not a full rubric
 - `reasoning`: free-text explanation of the scores
 - `created_at`
 

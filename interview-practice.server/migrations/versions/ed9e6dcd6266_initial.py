@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: ed6364fa4970
+Revision ID: ed9e6dcd6266
 Revises: 
-Create Date: 2026-10-03 12:44:37.400642
+Create Date: 2026-10-03 14:30:38.167888
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'ed6364fa4970'
+revision = 'ed9e6dcd6266'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -28,6 +28,19 @@ def upgrade():
     sa.Column('saved', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('document_analyses',
+    sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
+    sa.Column('document_id', sa.Uuid(), nullable=False),
+    sa.Column('model', sa.String(), nullable=False),
+    sa.Column('domain', sa.String(), nullable=True),
+    sa.Column('company_name', sa.String(), nullable=True),
+    sa.Column('skills', postgresql.ARRAY(sa.Text()), server_default=sa.text("'{}'::text[]"), nullable=False),
+    sa.Column('likely_topics', postgresql.ARRAY(sa.Text()), server_default=sa.text("'{}'::text[]"), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['document_id'], ['documents.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('document_id')
     )
     op.create_table('job_applications',
     sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -65,14 +78,13 @@ def upgrade():
     sa.Column('last_activity_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('persona_name', sa.String(), nullable=False),
     sa.Column('persona_title', sa.String(), nullable=False),
+    sa.Column('persona_backstory', sa.Text(), nullable=False),
     sa.Column('persona_image_path', sa.String(), nullable=False),
     sa.Column('job_description_document_id', sa.Uuid(), nullable=True),
     sa.Column('cv_document_id', sa.Uuid(), nullable=True),
     sa.Column('cover_letter_document_id', sa.Uuid(), nullable=True),
     sa.Column('coaching_helpers_enabled', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('response_style', sa.Enum('concise', 'detailed', name='responsestyle'), server_default='concise', nullable=False),
-    sa.Column('evaluation_criteria', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('phase_settings_override', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('ended_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['cover_letter_document_id'], ['documents.id'], ondelete='SET NULL'),
@@ -87,13 +99,27 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_interviews_job_application_id'), ['job_application_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_interviews_job_description_document_id'), ['job_description_document_id'], unique=False)
 
+    op.create_table('evaluation_criteria',
+    sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
+    sa.Column('interview_id', sa.Uuid(), nullable=False),
+    sa.Column('sequence', sa.Integer(), nullable=False),
+    sa.Column('category', sa.Enum('technical', 'behavioral', name='interviewcategory'), nullable=False),
+    sa.Column('criterion', sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(['interview_id'], ['interviews.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('interview_id', 'sequence')
+    )
     op.create_table('evaluations',
     sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('interview_id', sa.Uuid(), nullable=False),
     sa.Column('verdict', sa.Enum('hire', 'no_hire', name='verdict'), nullable=False),
     sa.Column('reasoning', sa.Text(), nullable=False),
     sa.Column('improvement_suggestions', sa.Text(), nullable=False),
-    sa.Column('star_breakdown', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('star_situation', sa.Text(), nullable=False),
+    sa.Column('star_task', sa.Text(), nullable=False),
+    sa.Column('star_action', sa.Text(), nullable=False),
+    sa.Column('star_result', sa.Text(), nullable=False),
+    sa.Column('star_completeness', sa.Enum('strong', 'partial', 'weak', name='starcompleteness'), nullable=False),
     sa.Column('incomplete', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('model_used', sa.String(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -101,13 +127,41 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('interview_id')
     )
+    op.create_table('interview_phase_settings',
+    sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
+    sa.Column('interview_id', sa.Uuid(), nullable=False),
+    sa.Column('phase', sa.Enum('jd_analysis', 'question_plan', 'live_conversation', 'ask_back', 'evaluation', 'interviewer_review', name='generationphase'), nullable=False),
+    sa.Column('model', sa.String(), nullable=True),
+    sa.Column('temperature', sa.Float(), nullable=True),
+    sa.Column('max_tokens', sa.Integer(), nullable=True),
+    sa.Column('reasoning_effort', sa.String(), nullable=True),
+    sa.ForeignKeyConstraint(['interview_id'], ['interviews.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('interview_id', 'phase')
+    )
+    op.create_table('interview_questions',
+    sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
+    sa.Column('interview_id', sa.Uuid(), nullable=False),
+    sa.Column('sequence', sa.Integer(), nullable=False),
+    # shares the type that evaluation_criteria (created above) already made
+    sa.Column('category', postgresql.ENUM('technical', 'behavioral', name='interviewcategory', create_type=False), nullable=False),
+    sa.Column('question', sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(['interview_id'], ['interviews.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('interview_id', 'sequence')
+    )
     op.create_table('interviewer_reviews',
     sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('interview_id', sa.Uuid(), nullable=False),
     sa.Column('judge_model', sa.String(), server_default='google/gemini-2.5-flash', nullable=False),
-    sa.Column('score_breakdown', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('score_question_relevance', sa.SmallInteger(), nullable=False),
+    sa.Column('score_persona_consistency', sa.SmallInteger(), nullable=False),
+    sa.Column('score_pacing', sa.SmallInteger(), nullable=False),
     sa.Column('reasoning', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.CheckConstraint('score_pacing BETWEEN 1 AND 5', name='ck_score_pacing_1_5'),
+    sa.CheckConstraint('score_persona_consistency BETWEEN 1 AND 5', name='ck_score_persona_consistency_1_5'),
+    sa.CheckConstraint('score_question_relevance BETWEEN 1 AND 5', name='ck_score_question_relevance_1_5'),
     sa.ForeignKeyConstraint(['interview_id'], ['interviews.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('interview_id')
@@ -137,7 +191,10 @@ def downgrade():
 
     op.drop_table('messages')
     op.drop_table('interviewer_reviews')
+    op.drop_table('interview_questions')
+    op.drop_table('interview_phase_settings')
     op.drop_table('evaluations')
+    op.drop_table('evaluation_criteria')
     with op.batch_alter_table('interviews', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_interviews_job_description_document_id'))
         batch_op.drop_index(batch_op.f('ix_interviews_job_application_id'))
@@ -151,5 +208,17 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_job_applications_cover_letter_document_id'))
 
     op.drop_table('job_applications')
+    op.drop_table('document_analyses')
     op.drop_table('documents')
+    # drop_table leaves enum types behind, which would break upgrading again
+    op.execute('DROP TYPE difficulty')
+    op.execute('DROP TYPE documenttype')
+    op.execute('DROP TYPE generationphase')
+    op.execute('DROP TYPE interviewcategory')
+    op.execute('DROP TYPE interviewstatus')
+    op.execute('DROP TYPE messagephase')
+    op.execute('DROP TYPE messagerole')
+    op.execute('DROP TYPE responsestyle')
+    op.execute('DROP TYPE starcompleteness')
+    op.execute('DROP TYPE verdict')
     # ### end Alembic commands ###

@@ -28,8 +28,7 @@ reasoning behind decisions only gestured at here.
   every OpenRouter call and the security guard. The OpenRouter API key and all prompt
   construction stay server-side — the client never sees a system prompt or an API key. A
   **Pydantic v2** validation layer sits between the API routes and the app's internals —
-  parses/validates every request body (and the JSONB-shaped fields: `evaluation_criteria`,
-  `star_breakdown`, `score_breakdown`, `phase_settings_override`) before it reaches
+  parses/validates every request body (and the LLM replies) before it reaches
   business logic. Chosen over Marshmallow for tighter type-hint integration with the
   project's existing mypy-strict setup, and because its `model_validator` mechanism is the
   natural place to enforce cross-field invariants like ADR 0009's judge-model exclusion
@@ -143,7 +142,9 @@ chat models via Preferences), using 5 deliberately distinct techniques:
 2. **Question-plan & persona generation** — produces the interviewer persona (name, job
    title, tone, and a knowledge scope/backstory shaped by `interviewer_role`), the question
    plan (skewed
-   technical vs. behavioral by `interview_type`), and a structured **evaluation rubric**
+   technical vs. behavioral by `interview_type`: at least 70% of the questions are of the
+   interview's own type, and exactly `target_question_count` of them are planned), and a
+   structured **evaluation rubric**
    (technical + behavioral criteria, stored as `EvaluationCriterion` rows; the question plan
    as `InterviewQuestion` rows) — the assignment's
    "generate interviewer guidelines" optional task, folded into this same call rather than a
@@ -154,6 +155,13 @@ chat models via Preferences), using 5 deliberately distinct techniques:
    actually distinguishes it from phase 4's few-shot prompt. The rubric is dev/interviewer
    -side only — not shown to the candidate — and is later fed into phase 5 as grounding so
    the STAR evaluation is judged against the same criteria the plan was built around.
+   The model returns JSON with the persona (`name`, `title`, `backstory`), the questions
+   and the criteria, validated before anything is stored; an empty or incomplete plan fails
+   the request with `502` and creates nothing. It also returns the Interview's `domain`,
+   but only when no analysed Document supplied one. The backstory is stored as
+   `Interview.persona_backstory`. The persona's `tone` is an input chosen by the candidate,
+   not generated. The model comes from the Interview's `question_plan` setting (default
+   `gpt-5-mini`).
 3. **Live interviewer conversation** (one call per Q&A turn) — role-plays the generated
    persona, asks the next question, and decides pacing/follow-ups and whether it has
    gathered enough signal to end the Q&A phase early (bounded above by
@@ -167,7 +175,7 @@ chat models via Preferences), using 5 deliberately distinct techniques:
    matching the assignment's own "questions to ask the interviewer" starter idea. Technique:
    **few-shot**, using example good closing questions as guidance.
 5. **STAR evaluation** — scores the full transcript (both phases) against the STAR
-   framework and `Interview.evaluation_criteria` (phase 2's rubric, weighted toward
+   framework and the Interview's `EvaluationCriterion` rows (phase 2's rubric, weighted toward
    whichever half — technical or behavioral — matches `interview_type`), and produces a
    verdict
    (`hire`/`no_hire`), reasoning, and improvement suggestions. Technique:
@@ -215,12 +223,13 @@ A collapsed "advanced settings" section on Create Interview lets the candidate o
 settings **per phase**, for just that Interview. Anything not overridden keeps using the
 global Preferences defaults (`gpt-5-mini`, Preferences' temperature, etc.).
 
-- Stored as `Interview.phase_settings_override` (jsonb), keyed by phase — `jd_analysis`,
-  `question_plan`, `live_conversation`, `ask_back`, `evaluation`, plus `interviewer_review`
-  (see below) — each an optional object of `{model, temperature, max_tokens,
-  reasoning_effort}`. Any field, or any phase key, that's absent falls back to the global
-  Preferences default. One JSONB column rather than a column per phase per setting, to
-  avoid a wide, mostly-null `interviews` table.
+- Stored as `InterviewPhaseSettings` rows (`interview_phase_settings`), one per overridden
+  phase — `jd_analysis`, `question_plan`, `live_conversation`, `ask_back`, `evaluation`,
+  plus `interviewer_review` (see below) — each with optional `{model, temperature,
+  max_tokens, reasoning_effort}` columns. Any field, or any phase with no row, falls back
+  to the global Preferences default. A child table rather than a column per phase per
+  setting, which would be a wide, mostly-null `interviews` table; the API still takes and
+  returns the nested `phaseSettingsOverride` object.
 - **Model choice**: for the 5 candidate-facing phases, all allowed models (`gpt-5-mini`,
   `gpt-5-nano`, `gpt-4o-mini`, `typesafe/jev-1.13`). The picker mechanism is already generic
   per-phase, so there was no remaining reason to keep it artificially restricted.
@@ -281,7 +290,7 @@ regenerated together; the score isn't derived separately from the narrative or v
   Overwrites the previous score/summary each time, so it always reflects the full picture
   so far rather than accumulating stale commentary.
 - **Inputs**: every completed stage's `Evaluation` under that `JobApplication` (`reasoning`,
-  `improvement_suggestions`, `star_breakdown`, plus the `evaluation_criteria` each stage was
+  `improvement_suggestions`, the STAR fields, plus the evaluation criteria each stage was
   judged against) — deliberately not raw transcripts, since the comparison is about
   assessed performance, not re-reading every conversation.
 - **Display**: the `/applications/:id` Application Overview page, reachable from the
@@ -416,7 +425,8 @@ a persisted Docker volume in deployment — see `deployment.md`.
 ```
 Create Interview
   → security guard checks input
-  → JD/CV analysis prompt
+  → JD/CV analysis prompt (per Document; skipped for Documents already analysed by the
+    Interview's `jd_analysis` model — normally done at upload time)
   → question-plan & persona generation prompt
   → persona image generation (stored)
   → Interview row created (status = in_progress)

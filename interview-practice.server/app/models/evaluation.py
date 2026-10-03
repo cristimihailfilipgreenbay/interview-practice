@@ -3,10 +3,9 @@ from __future__ import annotations
 import enum
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, false, func
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.extensions import Base, uuid_pk
@@ -20,6 +19,12 @@ class Verdict(enum.Enum):
     no_hire = "no_hire"
 
 
+class StarCompleteness(enum.Enum):
+    strong = "strong"
+    partial = "partial"
+    weak = "weak"
+
+
 class Evaluation(Base):
     __tablename__ = "evaluations"
 
@@ -30,7 +35,12 @@ class Evaluation(Base):
     verdict: Mapped[Verdict] = mapped_column(Enum(Verdict))
     reasoning: Mapped[str] = mapped_column(Text)
     improvement_suggestions: Mapped[str] = mapped_column(Text)
-    star_breakdown: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    # STAR breakdown, aggregated across the whole interview
+    star_situation: Mapped[str] = mapped_column(Text)
+    star_task: Mapped[str] = mapped_column(Text)
+    star_action: Mapped[str] = mapped_column(Text)
+    star_result: Mapped[str] = mapped_column(Text)
+    star_completeness: Mapped[StarCompleteness] = mapped_column(Enum(StarCompleteness))
     incomplete: Mapped[bool] = mapped_column(Boolean, server_default=false())
     model_used: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(

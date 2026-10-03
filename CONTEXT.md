@@ -51,8 +51,8 @@ _Avoid_: review (bare), judge report
 ### Interviewer & persona
 
 **Persona**:
-The generated interviewer character (name, tone, knowledge scope) that conducts an
-Interview's live conversation.
+The generated interviewer character (name, title, tone, backstory/knowledge scope) that
+conducts an Interview's live conversation.
 _Avoid_: character, avatar
 
 **Tone**:
@@ -123,9 +123,14 @@ An Evaluation's headline outcome — hire or no_hire.
 _Avoid_: decision, result
 
 **Evaluation criteria**:
-The structured technical + behavioral rubric generated with the question plan, used to
-ground an Evaluation. Never shown to the candidate.
+The technical + behavioral rubric generated with the question plan, one criterion per
+row, used to ground an Evaluation. Never shown to the candidate.
 _Avoid_: rubric, interviewer guidelines
+
+**Interview question**:
+One entry of an Interview's question plan: something the interviewer intends to ask,
+tagged technical or behavioral. Never shown to the candidate.
+_Avoid_: planned question, topic
 
 **Document analysis**:
 What phase 1 extracted from one Document (domain, employer, skills, likely topics), kept

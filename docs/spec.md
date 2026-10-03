@@ -165,14 +165,16 @@ developer-facing preferences area kept apart from the candidate experience.
   target_question_count, status, `last_activity_at` + 30-minute staleness detection per
   [ADR 0006](./adr/0006-lazy-staleness-detection-not-a-background-job.md), persona_name,
   persona_title, persona_image_path, coaching_helpers_enabled (default false),
-  response_style (default concise), evaluation_criteria `{technical[], behavioral[]}`,
-  phase_settings_override across 6 phase keys including the judge phase's narrower model
+  response_style (default concise), `InterviewQuestion` rows (the question plan) and
+  `EvaluationCriterion` rows (technical/behavioral rubric), `DocumentAnalysis` per Document
+  (cached phase-1 output, keyed by model),
+  `InterviewPhaseSettings` rows across 6 phases including the judge phase's narrower model
   set), `Message` (phase, role, content, helper_text, sequence), `Evaluation` (verdict,
-  reasoning, improvement_suggestions, star_breakdown
-  `{situation, task, action, result, completeness}`, incomplete, model_used — always
+  reasoning, improvement_suggestions, star_situation/task/action/result +
+  star_completeness, incomplete, model_used — always
   `gpt-5-mini`, see [ADR 0003](./adr/0003-self-grading-evaluation-vs-decoupled-interviewer-review.md)),
-  `InterviewerReview` (judge_model default `google/gemini-2.5-flash`, score_breakdown
-  `{question_relevance, persona_consistency, pacing}` 1-5, reasoning, automatic trigger at
+  `InterviewerReview` (judge_model default `google/gemini-2.5-flash`, score_question_relevance /
+  score_persona_consistency / score_pacing 1-5, reasoning, automatic trigger at
   session end).
 - **The 5 required LLM phases**: zero-shot JD/CV analysis (plain-text context, not RAG —
   [ADR 0004](./adr/0004-job-description-context-is-not-rag.md)); instruction/
@@ -182,7 +184,7 @@ developer-facing preferences area kept apart from the candidate experience.
   [ADR 0009](./adr/0009-judge-model-excludes-the-interview-model.md)'s collision-exclusion
   enforced in both Preferences and per-interview overrides), and the JobApplication
   Progress Summary feature (regenerated once 2+ stages have an Evaluation, from prior
-  Evaluations' reasoning/improvement_suggestions/star_breakdown/evaluation_criteria, not
+  Evaluations' reasoning/improvement_suggestions/STAR fields/evaluation criteria, not
   raw transcripts).
 - **Security guard**: one centralized Flask service all outbound prompts pass through
   (length limits, prompt-injection detection, off-topic/abuse detection).

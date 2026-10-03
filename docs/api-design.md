@@ -26,9 +26,8 @@ conversion happens once, on the server: every Pydantic request/response schema i
 shared `ApiModel` base (`alias_generator=to_camel`), so `source_filename` is sent as
 `sourceFilename` and incoming `camelCase` is read back into snake_case fields. Only *keys*
 are converted. Enum values (`technical_screener`, `in_progress`, `cover_letter`), error
-`code`s (`FILE_TOO_LARGE`) and query-string values stay as they are, and the JSONB columns
-(`phase_settings_override`, `evaluation_criteria`) are stored snake_case in the database
-and camelCased only when serialized. The Angular client uses the JSON as-is.
+`code`s (`FILE_TOO_LARGE`) and query-string values stay as they are. The Angular client
+uses the JSON as-is.
 
 ## Error contract
 
@@ -89,7 +88,7 @@ Create Interview submission. Request:
 
 Response `201`: the created `Interview` (id, `status: "in_progress"`, `personaName`,
 `personaTitle`, `personaImagePath` as a servable URL, `targetQuestionCount`, etc.) —
-**not** `evaluationCriteria`, which stays hidden from the candidate.
+**not** the question plan or the evaluation criteria, which stay hidden from the candidate.
 
 **Open concern, not yet resolved**: this call runs phases 1 (JD/CV analysis), 2
 (question-plan/persona generation), and persona image generation sequentially before
